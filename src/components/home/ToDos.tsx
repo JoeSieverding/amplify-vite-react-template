@@ -5,6 +5,10 @@ import { useAuthenticator } from '@aws-amplify/ui-react';
 
 const client = generateClient<Schema>();
 
+// const { data: todos } = await client.models.Todo.list()
+
+// return <ul>{todos.map(todo => <li key={todo.id}>{todo.content}</li>)}</ul>
+
 function ToDos() {
   const [todos, setTodos] = useState<Array<Schema["Todo"]["type"]>>([]);
 
@@ -31,7 +35,7 @@ function ToDos() {
       <ul>
         {todos.map((todo) => <li 
             onClick={() => deleteTodo(todo.id)}
-            key={todo.id}>{todo.content}
+            key={todo.id}>{todo.content} {todo.comment}
           </li>)}
       </ul>
       <div>

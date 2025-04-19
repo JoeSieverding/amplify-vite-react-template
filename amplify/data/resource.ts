@@ -13,6 +13,23 @@ const schema = a.schema({
       comment: a.string()
     })
     .authorization((allow) => [allow.publicApiKey()]),
+  Sca: a
+    .model({
+      partner: a.string(),
+      start_date: a.string(),
+      end_date: a.string(),
+      contract_name: a.string(),
+      contract_description: a.string(),
+      contract_type: a.string(),
+      contract_status: a.string(),
+      contract_comments: a.string(),
+      contract_aws_contributions: a.string(),
+      contract_partner_contributions: a.string(),
+      contract_time_based_targets: a.string(),
+      contract_primary_industry: a.string(),
+      contract_overall_status: a.string(),
+      contract_theme: a.string()    })
+    .authorization((allow) => [allow.publicApiKey()]),
 });
 
 export type Schema = ClientSchema<typeof schema>;
