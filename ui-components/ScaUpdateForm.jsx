@@ -1,4 +1,5 @@
 /* eslint-disable */
+//import { useNavigate } from "react-router-dom";
 "use client";
 import * as React from "react";
 import { Button, Flex, Grid, TextField } from "@aws-amplify/ui-react";
@@ -7,6 +8,7 @@ import { generateClient } from "aws-amplify/api";
 import { getSca } from "./graphql/queries";
 import { updateSca } from "./graphql/mutations";
 const client = generateClient();
+//const navigate = useNavigate();
 export default function ScaUpdateForm(props) {
   const {
     id: idProp,
@@ -204,6 +206,7 @@ export default function ScaUpdateForm(props) {
           if (onSuccess) {
             onSuccess(modelFields);
           }
+//          navigate('/scalist');
         } catch (err) {
           if (onError) {
             const messages = err.errors.map((e) => e.message).join("\n");
