@@ -1,5 +1,5 @@
 /* eslint-disable */
-//import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 "use client";
 import * as React from "react";
 import { Button, Flex, Grid, TextField } from "@aws-amplify/ui-react";
@@ -8,8 +8,9 @@ import { generateClient } from "aws-amplify/api";
 import { getSca } from "./graphql/queries";
 import { updateSca } from "./graphql/mutations";
 const client = generateClient();
-//const navigate = useNavigate();
 export default function ScaUpdateForm(props) {
+  const navigate = useNavigate();
+
   const {
     id: idProp,
     sca: scaModelProp,
@@ -72,26 +73,25 @@ export default function ScaUpdateForm(props) {
   const [errors, setErrors] = React.useState({});
   const resetStateValues = () => {
     const cleanValues = scaRecord
-      ? { ...initialValues, ...scaRecord }
-      : initialValues;
-    setPartner(cleanValues.partner);
-    setStart_date(cleanValues.start_date);
-    setEnd_date(cleanValues.end_date);
-    setContract_name(cleanValues.contract_name);
-    setContract_description(cleanValues.contract_description);
-    setContract_type(cleanValues.contract_type);
-    setContract_status(cleanValues.contract_status);
-    setContract_comments(cleanValues.contract_comments);
-    setContract_aws_contributions(cleanValues.contract_aws_contributions);
-    setContract_partner_contributions(
-      cleanValues.contract_partner_contributions
-    );
-    setContract_time_based_targets(cleanValues.contract_time_based_targets);
-    setContract_primary_industry(cleanValues.contract_primary_industry);
-    setContract_overall_status(cleanValues.contract_overall_status);
-    setContract_theme(cleanValues.contract_theme);
+        ? { ...initialValues, ...scaRecord }
+        : initialValues;
+    setPartner(cleanValues.partner || "");
+    setStart_date(cleanValues.start_date || "");
+    setEnd_date(cleanValues.end_date || "");
+    setContract_name(cleanValues.contract_name || "");
+    setContract_description(cleanValues.contract_description || "");
+    setContract_type(cleanValues.contract_type || "");
+    setContract_status(cleanValues.contract_status || "");
+    setContract_comments(cleanValues.contract_comments || "");
+    setContract_aws_contributions(cleanValues.contract_aws_contributions || "");
+    setContract_partner_contributions(cleanValues.contract_partner_contributions || "");
+    setContract_time_based_targets(cleanValues.contract_time_based_targets || "");
+    setContract_primary_industry(cleanValues.contract_primary_industry || "");
+    setContract_overall_status(cleanValues.contract_overall_status || "");
+    setContract_theme(cleanValues.contract_theme || "");
     setErrors({});
-  };
+};
+
   const [scaRecord, setScaRecord] = React.useState(scaModelProp);
   React.useEffect(() => {
     const queryData = async () => {
@@ -150,22 +150,22 @@ export default function ScaUpdateForm(props) {
       onSubmit={async (event) => {
         event.preventDefault();
         let modelFields = {
-          partner: partner ?? null,
-          start_date: start_date ?? null,
-          end_date: end_date ?? null,
-          contract_name: contract_name ?? null,
-          contract_description: contract_description ?? null,
-          contract_type: contract_type ?? null,
-          contract_status: contract_status ?? null,
-          contract_comments: contract_comments ?? null,
-          contract_aws_contributions: contract_aws_contributions ?? null,
-          contract_partner_contributions:
-            contract_partner_contributions ?? null,
-          contract_time_based_targets: contract_time_based_targets ?? null,
-          contract_primary_industry: contract_primary_industry ?? null,
-          contract_overall_status: contract_overall_status ?? null,
-          contract_theme: contract_theme ?? null,
-        };
+          partner: partner || "",
+          start_date: start_date || "",
+          end_date: end_date || "",
+          contract_name: contract_name || "",
+          contract_description: contract_description || "",
+          contract_type: contract_type || "",
+          contract_status: contract_status || "",
+          contract_comments: contract_comments || "",
+          contract_aws_contributions: contract_aws_contributions || "",
+          contract_partner_contributions: contract_partner_contributions || "",
+          contract_time_based_targets: contract_time_based_targets || "",
+          contract_primary_industry: contract_primary_industry || "",
+          contract_overall_status: contract_overall_status || "",
+          contract_theme: contract_theme || "",
+      };
+      
         const validationResponses = await Promise.all(
           Object.keys(validations).reduce((promises, fieldName) => {
             if (Array.isArray(modelFields[fieldName])) {
@@ -190,8 +190,8 @@ export default function ScaUpdateForm(props) {
         }
         try {
           Object.entries(modelFields).forEach(([key, value]) => {
-            if (typeof value === "string" && value === "") {
-              modelFields[key] = null;
+            if (typeof value === "string" && value.trim() === "") {
+              modelFields[key] = "";
             }
           });
           await client.graphql({
@@ -206,7 +206,7 @@ export default function ScaUpdateForm(props) {
           if (onSuccess) {
             onSuccess(modelFields);
           }
-//          navigate('/scalist');
+          navigate(-1);
         } catch (err) {
           if (onError) {
             const messages = err.errors.map((e) => e.message).join("\n");
@@ -780,6 +780,13 @@ export default function ScaUpdateForm(props) {
           {...getOverrideProps(overrides, "RightAlignCTASubFlex")}
         >
           <Button
+            children="Cancel"
+            type="button"
+            onClick={() => {
+              navigate(-1);
+            }}
+          ></Button>
+          <Button
             children="Submit"
             type="submit"
             variation="primary"
@@ -788,7 +795,7 @@ export default function ScaUpdateForm(props) {
               Object.values(errors).some((e) => e?.hasError)
             }
             {...getOverrideProps(overrides, "SubmitButton")}
-          ></Button>
+        ></Button>
         </Flex>
       </Flex>
     </Grid>

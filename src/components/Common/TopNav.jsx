@@ -90,11 +90,11 @@ function TopNav() {
           items: [
             {
               id: "settings-org",
-              text: "Organizational settings"
+              text: "Future Feature 1"
             },
             {
               id: "settings-project",
-              text: "Project settings"
+              text: "Future Feature 2"
             }
           ]
         },
@@ -104,8 +104,8 @@ function TopNav() {
           iconName: "user-profile",
           items: [
             { id: "email", text: "User: " + userDetails.email },
-            { id: "preferences", text: "Preferences" },
-            { id: "security", text: "Security" },
+//            { id: "preferences", text: "Preferences" },
+//            { id: "security", text: "Security" },
             {
               id: "support-group",
               text: "Support",
@@ -120,7 +120,7 @@ function TopNav() {
                 },
                 {
                   id: "feedback",
-                  text: "Log feature request (coming soon)",
+                  text: "Log Feature Request (coming soon)",
         //          href: "www.example.com",
                   external: true,
                   externalIconAriaLabel:

@@ -184,6 +184,7 @@ export default function ScaCreateForm(props) {
           if (clearOnSuccess) {
             resetStateValues();
           }
+          props.navigation(-1);
         } catch (err) {
           if (onError) {
             const messages = err.errors.map((e) => e.message).join("\n");

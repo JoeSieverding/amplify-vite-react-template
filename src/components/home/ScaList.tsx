@@ -11,6 +11,8 @@ import Pagination from "@cloudscape-design/components/pagination";
 import CollectionPreferences, { CollectionPreferencesProps } from "@cloudscape-design/components/collection-preferences";
 import Link from "@cloudscape-design/components/link";
 import { useNavigate } from "react-router-dom";
+//import * as React from "react";
+import ButtonDropdown from "@cloudscape-design/components/button-dropdown";
 
 const client = generateClient<Schema>();
 
@@ -43,6 +45,37 @@ function ScaList() {
   const handleScaClick = (item: Schema["Sca"]["type"]) => {
     navigate('/scadetail', { state: { item } });
   };
+
+  const handleActionClick = ({ detail }: { detail: { id: string } }) => {
+    switch (detail.id) {
+      case 'delete':
+        handleDeleteScas();
+        break;
+      // Add other cases as needed
+    }
+  };
+
+  const handleDeleteScas = async () => {
+    if (selectedItems.length === 0) {
+      // You might want to add a notification here that no items are selected
+      return;
+    }
+  
+    try {
+      // Delete each selected SCA
+      for (const item of selectedItems) {
+        await client.models.Sca.delete(item);
+      }
+      
+      // Clear selection after successful deletion
+      setSelectedItems([]);
+      
+    } catch (error) {
+      console.error('Error deleting SCAs:', error);
+      // You might want to add error handling/notification here
+    }
+  };
+  
 
   useEffect(() => {
     const subscription = client.models.Sca.observeQuery().subscribe({
@@ -102,21 +135,18 @@ function ScaList() {
           id: "partner",
           header: "Partner",
           cell: item => item.partner,
-          sortingField: "name",
+          sortingField: "partner",
           isRowHeader: true
         },
         {
           id: "contract_name",
           header: "SCA",
           cell: item => (
-            <Link 
-              onFollow={() => handleScaClick(item)}
-//              href="#"
-            >
+            <Link onFollow={() => handleScaClick(item)}>
               {item.contract_name}
             </Link>
           ),
-          sortingField: "alt"
+          sortingField: "contract_name"
         },
         {
           id: "contract_type",
@@ -133,7 +163,7 @@ function ScaList() {
       enableKeyboardNavigation
       loadingText="Loading resources"
       selectionType="multi"
-      trackBy="name"
+      trackBy="id"
       empty={
         <Box margin={{ vertical: "xs" }} textAlign="center" color="inherit">
           <SpaceBetween size="m">
@@ -152,10 +182,33 @@ function ScaList() {
         />
       }
       header={
-        <Header
-          counter={selectedItems.length ? `(${selectedItems.length}/10)` : "(10)"}
-        >
-          SCA List
+        <Header counter={selectedItems.length ? `(${selectedItems.length}/10)` : "(10)"}>
+          SCA List<span>     </span>       
+          <ButtonDropdown
+            items={[
+              { text: "List SCAs", id: "rm", disabled: false },
+              {
+                id: "add",
+                text: "Add SCA", 
+                disabled: false,
+                href: "/addsca"
+              },  
+              { 
+                text: "Delete Selected",
+                id: "delete", 
+                disabled: selectedItems.length === 0 },
+              {
+                id: "view",
+                text: "View metrics",
+                href: "https://example.com",
+                external: true,
+                externalIconAriaLabel: "(opens in new tab)"
+              }
+            ]}
+            onItemClick={handleActionClick}
+          >
+            Actions
+          </ButtonDropdown>
         </Header>
       }
       pagination={
