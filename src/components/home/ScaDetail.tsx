@@ -9,7 +9,7 @@ function ScaDetail() {
       return <div>No item selected</div>;
     }
 
-    return <ScaUpdateForm id={item?.id} sca={item} />;
+    return <ScaUpdateForm sca={item} />;
   }
 
 export default ScaDetail;

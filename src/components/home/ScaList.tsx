@@ -111,7 +111,7 @@ function ScaList() {
           cell: item => (
             <Link 
               onFollow={() => handleScaClick(item)}
-              href="#"
+//              href="#"
             >
               {item.contract_name}
             </Link>
