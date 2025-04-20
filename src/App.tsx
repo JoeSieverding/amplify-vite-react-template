@@ -7,6 +7,7 @@ import "@cloudscape-design/global-styles/index.css"
 import HomePage from "./components/home/HomePage";
 import ToDos from "./components/home/ToDos";
 import ScaList from "./components/home/ScaList";
+import ScaDetail from "./components/home/ScaDetail";
 
 function App() {
 
@@ -17,6 +18,7 @@ function App() {
           <Route path="/homepage" element={<HomePage />} />
           <Route path="/todos" element={<ToDos />} />
           <Route path="/scas" element={<ScaList />} />
+          <Route path="/scadetail" element={<ScaDetail />} />
         </Routes>
       </BrowserRouter>
       
