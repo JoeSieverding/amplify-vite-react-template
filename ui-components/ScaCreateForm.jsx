@@ -1,4 +1,5 @@
 /* eslint-disable */
+import { useNavigate } from 'react-router-dom';
 "use client";
 import * as React from "react";
 import { Button, Flex, Grid, TextField } from "@aws-amplify/ui-react";
@@ -6,7 +7,10 @@ import { fetchByPath, getOverrideProps, validateField } from "./utils";
 import { generateClient } from "aws-amplify/api";
 import { createSca } from "./graphql/mutations";
 const client = generateClient();
+
 export default function ScaCreateForm(props) {
+  const navigate = useNavigate();
+
   const {
     clearOnSuccess = true,
     onSuccess,
@@ -15,6 +19,7 @@ export default function ScaCreateForm(props) {
     onValidate,
     onChange,
     overrides,
+    navigation,
     ...rest
   } = props;
   const initialValues = {
@@ -184,7 +189,7 @@ export default function ScaCreateForm(props) {
           if (clearOnSuccess) {
             resetStateValues();
           }
-          props.navigation(-1);
+          navigation(-1);
         } catch (err) {
           if (onError) {
             const messages = err.errors.map((e) => e.message).join("\n");
@@ -756,7 +761,14 @@ export default function ScaCreateForm(props) {
           gap="15px"
           {...getOverrideProps(overrides, "RightAlignCTASubFlex")}
         >
-          <Button
+           <Button
+             children="Cancel"
+             type="button"
+             onClick={() => {
+               navigate(-1);
+             }}
+           ></Button>
+           <Button
             children="Submit"
             type="submit"
             variation="primary"
