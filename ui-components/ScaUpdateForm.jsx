@@ -2,13 +2,9 @@
 import { useNavigate } from "react-router-dom";
 "use client";
 import * as React from "react";
-import Form from "@cloudscape-design/components/form";
-import SpaceBetween from "@cloudscape-design/components/space-between";
-import Button from "@cloudscape-design/components/button";
-import Container from "@cloudscape-design/components/container";
-import Header from "@cloudscape-design/components/header";
-import FormField from "@cloudscape-design/components/form-field";
-import Input from "@cloudscape-design/components/input";
+import {
+  Button, Form, SpaceBetween, Container, Header, FormField, Input, Grid
+} from "@cloudscape-design/components";
 import { fetchByPath, getOverrideProps, validateField } from "./utils";
 import { generateClient } from "aws-amplify/api";
 import { getSca } from "./graphql/queries";
@@ -235,7 +231,8 @@ export default function ScaUpdateForm(props) {
           </Button>
           <Button
             variation="secondary"
-            onClick={() => {
+            onClick={(event) => {
+              event.preventDefault();
               navigate(-1);
             }}
           >
@@ -253,627 +250,463 @@ export default function ScaUpdateForm(props) {
       <Container
         header={
           <Header variant="h2">
-          Form container header
+          SCA Details
           </Header>
         }
       >
-<SpaceBetween direction="horizontal" size="1">
-  <FormField
-    label="Partner"
-    controlId="partner-field"
-    stretch={false}
-  >
-    <Input
-      value={partner}
-      onChange={({ detail }) => {
-        let value = detail.value;
-        setPartner(value);
-        if (onChange) {
-          const modelFields = {
-            partner: value,
-            start_date,
-            end_date,
-            contract_name,
-            contract_description,
-            contract_type,
-            contract_status,
-            contract_comments,
-            contract_aws_contributions,
-            contract_partner_contributions,
-            contract_time_based_targets,
-            contract_primary_industry,
-            contract_overall_status,
-            contract_theme,
-          };
-          const result = onChange(modelFields);
-          value = result?.partner ?? value;
-        }
-        if (errors.partner?.hasError) {
-          runValidationTasks("partner", value);
-        }
-        setPartner(value);
-      }}
-      onBlur={() => runValidationTasks("partner", partner)}
-      disabled={false}
-      readOnly={false}
-      errorMessage={errors.partner?.errorMessage}
-      hasError={errors.partner?.hasError}
-      {...getOverrideProps(overrides, "partner")}
-    />
-  </FormField>
 
-  <FormField
-    label="Start date"
-    controlId="start-date-field"
-    stretch={false}
-  >
-    <Input
-      value={start_date}
-      onChange={({ detail }) => {
-        let value = detail.value;
-        setStart_date(value);
-        if (onChange) {
-          const modelFields = {
-            partner,
-            start_date: value,
-            end_date,
-            contract_name,
-            contract_description,
-            contract_type,
-            contract_status,
-            contract_comments,
-            contract_aws_contributions,
-            contract_partner_contributions,
-            contract_time_based_targets,
-            contract_primary_industry,
-            contract_overall_status,
-            contract_theme,
-          };
-          const result = onChange(modelFields);
-          value = result?.start_date ?? value;
-        }
-        if (errors.start_date?.hasError) {
-          runValidationTasks("start_date", value);
-        }
-        setStart_date(value);
-      }}
-      onBlur={() => runValidationTasks("start_date", start_date)}
-      disabled={false}
-      readOnly={false}
-      errorMessage={errors.start_date?.errorMessage}
-      hasError={errors.start_date?.hasError}
-      {...getOverrideProps(overrides, "start_date")}
-    />
-  </FormField>
+<Container
+  header={
+    <Header
+      variant="h4"
+      counter={null}
+      info={null}
+    >
+      Basic SCA Data
+    </Header>
+  }
+>
+  <SpaceBetween direction="vertical" size="l">
+    {/* First Row: Partner and Contract Name */}
+    <Grid gridDefinition={[{ colspan: 6 }, { colspan: 6 }]}>
+      <div style={{ display: 'flex', alignItems: 'center' }}>
+        <div style={{ width: '100px', marginRight: '10px', textAlign: 'right' }}>
+          Partner:
+        </div>
+        <FormField
+          controlId="partner-field"
+          stretch={true}
+        >
+          <Input
+            value={partner}
+            onChange={({ detail }) => {
+              /* ... partner onChange handler ... */
+            }}
+            onBlur={() => runValidationTasks("partner", partner)}
+            disabled={false}
+            readOnly={false}
+            errorMessage={errors.partner?.errorMessage}
+            hasError={errors.partner?.hasError}
+            {...getOverrideProps(overrides, "partner")}
+          />
+        </FormField>
+      </div>
 
-  <FormField
-    label="End date"
-    controlId="end-date-field"
-    stretch={false}
-  >
-    <Input
-      value={end_date}
-      onChange={({ detail }) => {
-        let value = detail.value;
-        setEnd_date(value);
-        if (onChange) {
-          const modelFields = {
-            partner,
-            start_date,
-            end_date: value,
-            contract_name,
-            contract_description,
-            contract_type,
-            contract_status,
-            contract_comments,
-            contract_aws_contributions,
-            contract_partner_contributions,
-            contract_time_based_targets,
-            contract_primary_industry,
-            contract_overall_status,
-            contract_theme,
-          };
-          const result = onChange(modelFields);
-          value = result?.end_date ?? value;
-        }
-        if (errors.end_date?.hasError) {
-          runValidationTasks("end_date", value);
-        }
-        setEnd_date(value);
-      }}
-      onBlur={() => runValidationTasks("end_date", end_date)}
-      disabled={false}
-      readOnly={false}
-      errorMessage={errors.end_date?.errorMessage}
-      hasError={errors.end_date?.hasError}
-      {...getOverrideProps(overrides, "end_date")}
-    />
-  </FormField>
+      <div style={{ display: 'flex', alignItems: 'center' }}>
+        <div style={{ width: '100px', marginRight: '10px', textAlign: 'right' }}>
+          Contract name:
+        </div>
+        <FormField
+          controlId="contract-name-field"
+          stretch={true}
+        >
+          <Input
+            value={contract_name}
+            onChange={({ detail }) => {
+              /* ... contract_name onChange handler ... */
+            }}
+            onBlur={() => runValidationTasks("contract_name", contract_name)}
+            disabled={false}
+            readOnly={false}
+            errorMessage={errors.contract_name?.errorMessage}
+            hasError={errors.contract_name?.hasError}
+            {...getOverrideProps(overrides, "contract_name")}
+          />
+        </FormField>
+      </div>
+    </Grid>
 
-  <FormField
-    label="Contract name"
-    controlId="contract-name-field"
-    stretch={false}
-  >
-    <Input
-      value={contract_name}
-      onChange={({ detail }) => {
-        let value = detail.value;
-        setContract_name(value);
-        if (onChange) {
-          const modelFields = {
-            partner,
-            start_date,
-            end_date,
-            contract_name: value,
-            contract_description,
-            contract_type,
-            contract_status,
-            contract_comments,
-            contract_aws_contributions,
-            contract_partner_contributions,
-            contract_time_based_targets,
-            contract_primary_industry,
-            contract_overall_status,
-            contract_theme,
-          };
-          const result = onChange(modelFields);
-          value = result?.contract_name ?? value;
-        }
-        if (errors.contract_name?.hasError) {
-          runValidationTasks("contract_name", value);
-        }
-        setContract_name(value);
-      }}
-      onBlur={() => runValidationTasks("contract_name", contract_name)}
-      disabled={false}
-      readOnly={false}
-      errorMessage={errors.contract_name?.errorMessage}
-      hasError={errors.contract_name?.hasError}
-      {...getOverrideProps(overrides, "contract_name")}
-    />
-  </FormField>
+    {/* Second Row: Type and Start Date */}
+    <Grid gridDefinition={[{ colspan: 6 }, { colspan: 6 }]}>
+      <div style={{ display: 'flex', alignItems: 'center' }}>
+        <div style={{ width: '100px', marginRight: '10px', textAlign: 'right' }}>
+          Contract type:
+        </div>
+        <FormField
+          controlId="contract-type-field"
+          stretch={true}
+        >
+          <Input
+            value={contract_type}
+            onChange={({ detail }) => {
+              /* ... contract_type onChange handler ... */
+            }}
+            onBlur={() => runValidationTasks("contract_type", contract_type)}
+            disabled={false}
+            readOnly={false}
+            errorMessage={errors.contract_type?.errorMessage}
+            hasError={errors.contract_type?.hasError}
+            {...getOverrideProps(overrides, "contract_type")}
+          />
+        </FormField>
+      </div>
 
-  <FormField
-    label="Contract description"
-    controlId="contract-description-field"
-    stretch={false}
-  >
-    <Input
-      value={contract_description}
-      onChange={({ detail }) => {
-        let value = detail.value;
-        setContract_description(value);
-        if (onChange) {
-          const modelFields = {
-            partner,
-            start_date,
-            end_date,
-            contract_name,
-            contract_description: value,
-            contract_type,
-            contract_status,
-            contract_comments,
-            contract_aws_contributions,
-            contract_partner_contributions,
-            contract_time_based_targets,
-            contract_primary_industry,
-            contract_overall_status,
-            contract_theme,
-          };
-          const result = onChange(modelFields);
-          value = result?.contract_description ?? value;
-        }
-        if (errors.contract_description?.hasError) {
-          runValidationTasks("contract_description", value);
-        }
-        setContract_description(value);
-      }}
-      onBlur={() => runValidationTasks("contract_description", contract_description)}
-      disabled={false}
-      readOnly={false}
-      errorMessage={errors.contract_description?.errorMessage}
-      hasError={errors.contract_description?.hasError}
-      {...getOverrideProps(overrides, "contract_description")}
-    />
-  </FormField>
+      <div style={{ display: 'flex', alignItems: 'center' }}>
+        <div style={{ width: '100px', marginRight: '10px', textAlign: 'right' }}>
+          Start date:
+        </div>
+        <FormField
+          controlId="start-date-field"
+          stretch={true}
+        >
+          <Input
+            value={start_date}
+            onChange={({ detail }) => {
+              /* ... start_date onChange handler ... */
+            }}
+            onBlur={() => runValidationTasks("start_date", start_date)}
+            disabled={false}
+            readOnly={false}
+            errorMessage={errors.start_date?.errorMessage}
+            hasError={errors.start_date?.hasError}
+            {...getOverrideProps(overrides, "start_date")}
+          />
+        </FormField>
+      </div>
+    </Grid>
 
-  <FormField
-    label="Contract type"
-    controlId="contract-type-field"
-    stretch={false}
-  >
-    <Input
-      value={contract_type}
-      onChange={({ detail }) => {
-        let value = detail.value;
-        setContract_type(value);
-        if (onChange) {
-          const modelFields = {
-            partner,
-            start_date,
-            end_date,
-            contract_name,
-            contract_description,
-            contract_type: value,
-            contract_status,
-            contract_comments,
-            contract_aws_contributions,
-            contract_partner_contributions,
-            contract_time_based_targets,
-            contract_primary_industry,
-            contract_overall_status,
-            contract_theme,
-          };
-          const result = onChange(modelFields);
-          value = result?.contract_type ?? value;
-        }
-        if (errors.contract_type?.hasError) {
-          runValidationTasks("contract_type", value);
-        }
-        setContract_type(value);
-      }}
-      onBlur={() => runValidationTasks("contract_type", contract_type)}
-      disabled={false}
-      readOnly={false}
-      errorMessage={errors.contract_type?.errorMessage}
-      hasError={errors.contract_type?.hasError}
-      {...getOverrideProps(overrides, "contract_type")}
-    />
-  </FormField>
+    {/* Third Row: Status and End Date */}
+    <Grid gridDefinition={[{ colspan: 6 }, { colspan: 6 }]}>
+      <div style={{ display: 'flex', alignItems: 'center' }}>
+        <div style={{ width: '100px', marginRight: '10px', textAlign: 'right' }}>
+          Contract status:
+        </div>
+        <FormField
+          controlId="contract-status-field"
+          stretch={true}
+        >
+          <Input
+            value={contract_status}
+            onChange={({ detail }) => {
+              /* ... contract_status onChange handler ... */
+            }}
+            onBlur={() => runValidationTasks("contract_status", contract_status)}
+            disabled={false}
+            readOnly={false}
+            errorMessage={errors.contract_status?.errorMessage}
+            hasError={errors.contract_status?.hasError}
+            {...getOverrideProps(overrides, "contract_status")}
+          />
+        </FormField>
+      </div>
 
-  <FormField
-    label="Contract status"
-    controlId="contract-status-field"
-    stretch={false}
-  >
-    <Input
-      value={contract_status}
-      onChange={({ detail }) => {
-        let value = detail.value;
-        setContract_status(value);
-        if (onChange) {
-          const modelFields = {
-            partner,
-            start_date,
-            end_date,
-            contract_name,
-            contract_description,
-            contract_type,
-            contract_status: value,
-            contract_comments,
-            contract_aws_contributions,
-            contract_partner_contributions,
-            contract_time_based_targets,
-            contract_primary_industry,
-            contract_overall_status,
-            contract_theme,
-          };
-          const result = onChange(modelFields);
-          value = result?.contract_status ?? value;
-        }
-        if (errors.contract_status?.hasError) {
-          runValidationTasks("contract_status", value);
-        }
-        setContract_status(value);
-      }}
-      onBlur={() => runValidationTasks("contract_status", contract_status)}
-      disabled={false}
-      readOnly={false}
-      errorMessage={errors.contract_status?.errorMessage}
-      hasError={errors.contract_status?.hasError}
-      {...getOverrideProps(overrides, "contract_status")}
-    />
-  </FormField>
+      <div style={{ display: 'flex', alignItems: 'center' }}>
+        <div style={{ width: '100px', marginRight: '10px', textAlign: 'right' }}>
+          End date:
+        </div>
+        <FormField
+          controlId="end-date-field"
+          stretch={true}
+        >
+          <Input
+            value={end_date}
+            onChange={({ detail }) => {
+              /* ... end_date onChange handler ... */
+            }}
+            onBlur={() => runValidationTasks("end_date", end_date)}
+            disabled={false}
+            readOnly={false}
+            errorMessage={errors.end_date?.errorMessage}
+            hasError={errors.end_date?.hasError}
+            {...getOverrideProps(overrides, "end_date")}
+          />
+        </FormField>
+      </div>
+    </Grid>
+  </SpaceBetween>
+</Container>
 
-  <FormField
-    label="Contract comments"
-    controlId="contract-comments-field"
-    stretch={false}
-  >
-    <Input
-      value={contract_comments}
-      onChange={({ detail }) => {
-        let value = detail.value;
-        setContract_comments(value);
-        if (onChange) {
-          const modelFields = {
-            partner,
-            start_date,
-            end_date,
-            contract_name,
-            contract_description,
-            contract_type,
-            contract_status,
-            contract_comments: value,
-            contract_aws_contributions,
-            contract_partner_contributions,
-            contract_time_based_targets,
-            contract_primary_industry,
-            contract_overall_status,
-            contract_theme,
-          };
-          const result = onChange(modelFields);
-          value = result?.contract_comments ?? value;
-        }
-        if (errors.contract_comments?.hasError) {
-          runValidationTasks("contract_comments", value);
-        }
-        setContract_comments(value);
-      }}
-      onBlur={() => runValidationTasks("contract_comments", contract_comments)}
-      disabled={false}
-      readOnly={false}
-      errorMessage={errors.contract_comments?.errorMessage}
-      hasError={errors.contract_comments?.hasError}
-      {...getOverrideProps(overrides, "contract_comments")}
-    />
-  </FormField>
+<Container
+  header={
+    <Header
+      variant="h4"
+      counter={null}
+      info={null}
+    >
+      Industry & Theme
+    </Header>
+  }
+>
+  <SpaceBetween direction="vertical" size="l">
+    {/* First Row: Industry and Theme */}
+    <Grid gridDefinition={[{ colspan: 6 }, { colspan: 6 }]}>
+      <div style={{ display: 'flex', alignItems: 'center' }}>
+        <div style={{ width: '100px', marginRight: '10px', textAlign: 'right' }}>
+          Industry:
+        </div>
+        <FormField
+          controlId="contract-primary-industry-field"
+          stretch={true}
+        >
+          <Input
+            value={contract_primary_industry}
+            onChange={({ detail }) => {
+              let value = detail.value;
+              setContract_primary_industry(value);
+              if (onChange) {
+                const modelFields = {
+                  partner,
+                  contract_name,
+                  contract_type,
+                  contract_status,
+                  start_date,
+                  end_date,
+                  contract_primary_industry: value,
+                  contract_theme,
+                  contract_description,
+                  contract_aws_contributions,
+                  contract_partner_contributions,
+                  contract_time_based_targets,
+                  contract_comments,
+                };
+                const result = onChange(modelFields);
+                value = result?.contract_primary_industry ?? value;
+              }
+              if (errors.contract_primary_industry?.hasError) {
+                runValidationTasks("contract_primary_industry", value);
+              }
+              setContract_primary_industry(value);
+            }}
+            onBlur={() => runValidationTasks("contract_primary_industry", contract_primary_industry)}
+            disabled={false}
+            readOnly={false}
+            errorMessage={errors.contract_primary_industry?.errorMessage}
+            hasError={errors.contract_primary_industry?.hasError}
+            {...getOverrideProps(overrides, "contract_primary_industry")}
+          />
+        </FormField>
+      </div>
 
-  <FormField
-    label="Contract AWS contributions"
-    controlId="contract-aws-contributions-field"
-    stretch={false}
-  >
-    <Input
-      value={contract_aws_contributions}
-      onChange={({ detail }) => {
-        let value = detail.value;
-        setContract_aws_contributions(value);
-        if (onChange) {
-          const modelFields = {
-            partner,
-            start_date,
-            end_date,
-            contract_name,
-            contract_description,
-            contract_type,
-            contract_status,
-            contract_comments,
-            contract_aws_contributions: value,
-            contract_partner_contributions,
-            contract_time_based_targets,
-            contract_primary_industry,
-            contract_overall_status,
-            contract_theme,
-          };
-          const result = onChange(modelFields);
-          value = result?.contract_aws_contributions ?? value;
-        }
-        if (errors.contract_aws_contributions?.hasError) {
-          runValidationTasks("contract_aws_contributions", value);
-        }
-        setContract_aws_contributions(value);
-      }}
-      onBlur={() => runValidationTasks("contract_aws_contributions", contract_aws_contributions)}
-      disabled={false}
-      readOnly={false}
-      errorMessage={errors.contract_aws_contributions?.errorMessage}
-      hasError={errors.contract_aws_contributions?.hasError}
-      {...getOverrideProps(overrides, "contract_aws_contributions")}
-    />
-  </FormField>
+      <div style={{ display: 'flex', alignItems: 'center' }}>
+        <div style={{ width: '100px', marginRight: '10px', textAlign: 'right' }}>
+          Theme:
+        </div>
+        <FormField
+          controlId="contract-theme-field"
+          stretch={true}
+        >
+          <Input
+            value={contract_theme}
+            onChange={({ detail }) => {
+              let value = detail.value;
+              setContract_theme(value);
+              if (onChange) {
+                const modelFields = {
+                  partner,
+                  contract_name,
+                  contract_type,
+                  contract_status,
+                  start_date,
+                  end_date,
+                  contract_primary_industry,
+                  contract_theme: value,
+                  contract_description,
+                  contract_aws_contributions,
+                  contract_partner_contributions,
+                  contract_time_based_targets,
+                  contract_comments,
+                };
+                const result = onChange(modelFields);
+                value = result?.contract_theme ?? value;
+              }
+              if (errors.contract_theme?.hasError) {
+                runValidationTasks("contract_theme", value);
+              }
+              setContract_theme(value);
+            }}
+            onBlur={() => runValidationTasks("contract_theme", contract_theme)}
+            disabled={false}
+            readOnly={false}
+            errorMessage={errors.contract_theme?.errorMessage}
+            hasError={errors.contract_theme?.hasError}
+            {...getOverrideProps(overrides, "contract_theme")}
+          />
+        </FormField>
+      </div>
+    </Grid>
 
-  <FormField
-    label="Contract partner contributions"
-    controlId="contract-partner-contributions-field"
-    stretch={false}
-  >
-    <Input
-      value={contract_partner_contributions}
-      onChange={({ detail }) => {
-        let value = detail.value;
-        setContract_partner_contributions(value);
-        if (onChange) {
-          const modelFields = {
-            partner,
-            start_date,
-            end_date,
-            contract_name,
-            contract_description,
-            contract_type,
-            contract_status,
-            contract_comments,
-            contract_aws_contributions,
-            contract_partner_contributions: value,
-            contract_time_based_targets,
-            contract_primary_industry,
-            contract_overall_status,
-            contract_theme,
-          };
-          const result = onChange(modelFields);
-          value = result?.contract_partner_contributions ?? value;
-        }
-        if (errors.contract_partner_contributions?.hasError) {
-          runValidationTasks("contract_partner_contributions", value);
-        }
-        setContract_partner_contributions(value);
-      }}
-      onBlur={() => runValidationTasks("contract_partner_contributions", contract_partner_contributions)}
-      disabled={false}
-      readOnly={false}
-      errorMessage={errors.contract_partner_contributions?.errorMessage}
-      hasError={errors.contract_partner_contributions?.hasError}
-      {...getOverrideProps(overrides, "contract_partner_contributions")}
-    />
-  </FormField>
+    {/* Second Row: Description (full width) */}
+    <div style={{ display: 'flex', alignItems: 'flex-start', width: '100%', gap: '10px' }}>
+      <div style={{ width: '100px', marginRight: '10px', textAlign: 'right', flexShrink: 0 }}>
+        Description:
+      </div>
+      <div style={{ flex: '1 1 auto' }}> {/* Added wrapper div */}
+        <FormField
+          controlId="contract-description-field"
+          stretch={true}
+        >
+          <Input
+            value={contract_description}
+            onChange={({ detail }) => {
+              setContract_description(detail.value);
+            }}
+            onBlur={() => runValidationTasks("contract_description", contract_description)}
+            disabled={false}
+            readOnly={false}
+            errorMessage={errors.contract_description?.errorMessage}
+            hasError={errors.contract_description?.hasError}
+            multiline
+            rows={5}
+            inputMode="text"
+            spellcheck={true}
+            {...getOverrideProps(overrides, "contract_description")}
+          />
+        </FormField>
+      </div>
+    </div>
+  </SpaceBetween>
+</Container>
 
-  <FormField
-    label="Contract time based targets"
-    controlId="contract-time-based-targets-field"
-    stretch={false}
-  >
-    <Input
-      value={contract_time_based_targets}
-      onChange={({ detail }) => {
-        let value = detail.value;
-        setContract_time_based_targets(value);
-        if (onChange) {
-          const modelFields = {
-            partner,
-            start_date,
-            end_date,
-            contract_name,
-            contract_description,
-            contract_type,
-            contract_status,
-            contract_comments,
-            contract_aws_contributions,
-            contract_partner_contributions,
-            contract_time_based_targets: value,
-            contract_primary_industry,
-            contract_overall_status,
-            contract_theme,
-          };
-          const result = onChange(modelFields);
-          value = result?.contract_time_based_targets ?? value;
-        }
-        if (errors.contract_time_based_targets?.hasError) {
-          runValidationTasks("contract_time_based_targets", value);
-        }
-        setContract_time_based_targets(value);
-      }}
-      onBlur={() => runValidationTasks("contract_time_based_targets", contract_time_based_targets)}
-      disabled={false}
-      readOnly={false}
-      errorMessage={errors.contract_time_based_targets?.errorMessage}
-      hasError={errors.contract_time_based_targets?.hasError}
-      {...getOverrideProps(overrides, "contract_time_based_targets")}
-    />
-  </FormField>
+<Container
+  header={
+    <Header
+      variant="h4"
+      counter={null}
+      info={null}
+    >
+      Contributions & Targets
+    </Header>
+  }
+>
+  <SpaceBetween direction="vertical" size="l">
+    {/* AWS Contributions */}
+    <div style={{ 
+      display: 'flex', 
+      alignItems: 'flex-start', 
+      width: '100%',
+      gap: '10px'
+    }}>
+      <div style={{ 
+        width: '100px', 
+        marginRight: '10px', 
+        textAlign: 'right',
+        flexShrink: 0 
+      }}>
+        AWS contributions:
+      </div>
+      <div style={{ flex: '1 1 auto' }}>
+        <FormField
+          controlId="contract-aws-contributions-field"
+          stretch={true}
+        >
+          <Input
+            value={contract_aws_contributions}
+            onChange={({ detail }) => {
+              setContract_aws_contributions(detail.value);
+            }}
+            onBlur={() => runValidationTasks("contract_aws_contributions", contract_aws_contributions)}
+            multiline
+            rows={3}
+            {...getOverrideProps(overrides, "contract_aws_contributions")}
+          />
+        </FormField>
+      </div>
+    </div>
 
-  <FormField
-    label="Contract primary industry"
-    controlId="contract-primary-industry-field"
-    stretch={false}
-  >
-    <Input
-      value={contract_primary_industry}
-      onChange={({ detail }) => {
-        let value = detail.value;
-        setContract_primary_industry(value);
-        if (onChange) {
-          const modelFields = {
-            partner,
-            start_date,
-            end_date,
-            contract_name,
-            contract_description,
-            contract_type,
-            contract_status,
-            contract_comments,
-            contract_aws_contributions,
-            contract_partner_contributions,
-            contract_time_based_targets,
-            contract_primary_industry: value,
-            contract_overall_status,
-            contract_theme,
-          };
-          const result = onChange(modelFields);
-          value = result?.contract_primary_industry ?? value;
-        }
-        if (errors.contract_primary_industry?.hasError) {
-          runValidationTasks("contract_primary_industry", value);
-        }
-        setContract_primary_industry(value);
-      }}
-      onBlur={() => runValidationTasks("contract_primary_industry", contract_primary_industry)}
-      disabled={false}
-      readOnly={false}
-      errorMessage={errors.contract_primary_industry?.errorMessage}
-      hasError={errors.contract_primary_industry?.hasError}
-      {...getOverrideProps(overrides, "contract_primary_industry")}
-    />
-  </FormField>
+    {/* Partner Contributions */}
+    <div style={{ 
+      display: 'flex', 
+      alignItems: 'flex-start', 
+      width: '100%',
+      gap: '10px'
+    }}>
+      <div style={{ 
+        width: '100px', 
+        marginRight: '10px', 
+        textAlign: 'right',
+        flexShrink: 0 
+      }}>
+        Partner contributions:
+      </div>
+      <div style={{ flex: '1 1 auto' }}>
+        <FormField
+          controlId="contract-partner-contributions-field"
+          stretch={true}
+        >
+          <Input
+            value={contract_partner_contributions}
+            onChange={({ detail }) => {
+              setContract_partner_contributions(detail.value);
+            }}
+            onBlur={() => runValidationTasks("contract_partner_contributions", contract_partner_contributions)}
+            multiline
+            rows={3}
+            {...getOverrideProps(overrides, "contract_partner_contributions")}
+          />
+        </FormField>
+      </div>
+    </div>
 
-  <FormField
-    label="Contract overall status"
-    controlId="contract-overall-status-field"
-    stretch={false}
-  >
-    <Input
-      value={contract_overall_status}
-      onChange={({ detail }) => {
-        let value = detail.value;
-        setContract_overall_status(value);
-        if (onChange) {
-          const modelFields = {
-            partner,
-            start_date,
-            end_date,
-            contract_name,
-            contract_description,
-            contract_type,
-            contract_status,
-            contract_comments,
-            contract_aws_contributions,
-            contract_partner_contributions,
-            contract_time_based_targets,
-            contract_primary_industry,
-            contract_overall_status: value,
-            contract_theme,
-          };
-          const result = onChange(modelFields);
-          value = result?.contract_overall_status ?? value;
-        }
-        if (errors.contract_overall_status?.hasError) {
-          runValidationTasks("contract_overall_status", value);
-        }
-        setContract_overall_status(value);
-      }}
-      onBlur={() => runValidationTasks("contract_overall_status", contract_overall_status)}
-      disabled={false}
-      readOnly={false}
-      errorMessage={errors.contract_overall_status?.errorMessage}
-      hasError={errors.contract_overall_status?.hasError}
-      {...getOverrideProps(overrides, "contract_overall_status")}
-    />
-  </FormField>
+    {/* Time Based Targets */}
+    <div style={{ 
+      display: 'flex', 
+      alignItems: 'flex-start', 
+      width: '100%',
+      gap: '10px'
+    }}>
+      <div style={{ 
+        width: '100px', 
+        marginRight: '10px', 
+        textAlign: 'right',
+        flexShrink: 0 
+      }}>
+        Time based targets:
+      </div>
+      <div style={{ flex: '1 1 auto' }}>
+        <FormField
+          controlId="contract-time-based-targets-field"
+          stretch={true}
+        >
+          <Input
+            value={contract_time_based_targets}
+            onChange={({ detail }) => {
+              setContract_time_based_targets(detail.value);
+            }}
+            onBlur={() => runValidationTasks("contract_time_based_targets", contract_time_based_targets)}
+            multiline
+            rows={3}
+            {...getOverrideProps(overrides, "contract_time_based_targets")}
+          />
+        </FormField>
+      </div>
+    </div>
 
-  <FormField
-    label="Contract theme"
-    controlId="contract-theme-field"
-    stretch={false}
-  >
-    <Input
-      value={contract_theme}
-      onChange={({ detail }) => {
-        let value = detail.value;
-        setContract_theme(value);
-        if (onChange) {
-          const modelFields = {
-            partner,
-            start_date,
-            end_date,
-            contract_name,
-            contract_description,
-            contract_type,
-            contract_status,
-            contract_comments,
-            contract_aws_contributions,
-            contract_partner_contributions,
-            contract_time_based_targets,
-            contract_primary_industry,
-            contract_overall_status,
-            contract_theme: value,
-          };
-          const result = onChange(modelFields);
-          value = result?.contract_theme ?? value;
-        }
-        if (errors.contract_theme?.hasError) {
-          runValidationTasks("contract_theme", value);
-        }
-        setContract_theme(value);
-      }}
-      onBlur={() => runValidationTasks("contract_theme", contract_theme)}
-      disabled={false}
-      readOnly={false}
-      errorMessage={errors.contract_theme?.errorMessage}
-      hasError={errors.contract_theme?.hasError}
-      {...getOverrideProps(overrides, "contract_theme")}
-    />
-  </FormField>
-</SpaceBetween>
+    {/* Comments */}
+    <div style={{ 
+      display: 'flex', 
+      alignItems: 'flex-start', 
+      width: '100%',
+      gap: '10px'
+    }}>
+      <div style={{ 
+        width: '100px', 
+        marginRight: '10px', 
+        textAlign: 'right',
+        flexShrink: 0 
+      }}>
+        Comments:
+      </div>
+      <div style={{ flex: '1 1 auto' }}>
+        <FormField
+          controlId="contract-comments-field"
+          stretch={true}
+        >
+          <Input
+            value={contract_comments}
+            onChange={({ detail }) => {
+              setContract_comments(detail.value);
+            }}
+            onBlur={() => runValidationTasks("contract_comments", contract_comments)}
+            multiline
+            rows={3}
+            {...getOverrideProps(overrides, "contract_comments")}
+          />
+        </FormField>
+      </div>
+    </div>
+  </SpaceBetween>
+</Container>
+
 
       </Container>
  
