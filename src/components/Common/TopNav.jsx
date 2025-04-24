@@ -71,7 +71,7 @@ function TopNav() {
         {
             type: "button",
             text: "PRFAQ",
-            href: "https://amazon.awsapps.com/workdocs-amazon/index.html#/document/51440f50ed92c2464ffbff4133cc68d378c33492248b1b894a654703115005aa",
+            href: "https://amazon.awsapps.com/workdocs-amazon/index.html#/document/6c4e5255613553f6eb3e4168f0993f411f8e1ffe7221e3c843122f65a3b54b96",
             external: true,
             externalIconAriaLabel: " (opens in a new tab)"
           },

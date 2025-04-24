@@ -9,6 +9,7 @@ import ToDos from "./components/home/ToDos";
 import ScaList from "./components/home/ScaList";
 import ScaDetail from "./components/home/ScaDetail";
 import AddSca from "./components/home/AddSca";
+import ScaMilestoneList from "./components/home/ScaMilestoneList";
 
 function App() {
 
@@ -21,6 +22,7 @@ function App() {
           <Route path="/scas" element={<ScaList />} />
           <Route path="/scadetail" element={<ScaDetail />} />
           <Route path="/addsca" element={<AddSca />} />
+          <Route path="/scamilestonelist" element={<ScaMilestoneList />} />
         </Routes>
       </BrowserRouter>
       

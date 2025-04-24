@@ -13,6 +13,19 @@ const client = generateClient();
 export default function ScaUpdateForm(props) {
   const navigate = useNavigate();
 
+  const handleScaClick = (item) => {
+    event.preventDefault(); // Prevent any default form submission
+    const scaData = {
+      id: item.id,
+      // add any other necessary data you want to pass
+    };
+    navigate('/scamilestonelist', { 
+      state: { item: scaData },
+      replace: true // This prevents the back button from returning immediately
+    });
+  };
+  
+
   const {
     id: idProp,
     sca: scaModelProp,
@@ -40,6 +53,7 @@ export default function ScaUpdateForm(props) {
     contract_overall_status: "",
     contract_theme: "",
   };
+  const [isFormChanged, setIsFormChanged] = React.useState(false);
   const [partner, setPartner] = React.useState(initialValues.partner);
   const [start_date, setStart_date] = React.useState(initialValues.start_date);
   const [end_date, setEnd_date] = React.useState(initialValues.end_date);
@@ -74,11 +88,9 @@ export default function ScaUpdateForm(props) {
   );
   const [errors, setErrors] = React.useState({});
   const resetStateValues = () => {
-//    console.log('scaRecord:', scaRecord);
     const cleanValues = scaRecord
         ? { ...initialValues, ...scaRecord }
         : initialValues;
-//    console.log('cleanValues:', cleanValues);
     setPartner(typeof cleanValues.partner === 'string' ? cleanValues.partner : '');
     setStart_date(cleanValues.start_date || "");
     setEnd_date(cleanValues.end_date || "");
@@ -94,6 +106,7 @@ export default function ScaUpdateForm(props) {
     setContract_overall_status(cleanValues.contract_overall_status || "");
     setContract_theme(cleanValues.contract_theme || "");
     setErrors({});
+    setIsFormChanged(false);
 };
 
   const [scaRecord, setScaRecord] = React.useState(scaModelProp);
@@ -201,10 +214,14 @@ export default function ScaUpdateForm(props) {
           },
         },
       });
+      setScaRecord({
+        ...scaRecord,
+        ...modelFields
+      });
       if (onSuccess) {
         onSuccess(modelFields);
       }
-      navigate(-1);
+      setIsFormChanged(false);
     } catch (err) {
       if (onError) {
         const messages = err.errors.map((e) => e.message).join("\n");
@@ -215,45 +232,60 @@ export default function ScaUpdateForm(props) {
     {...getOverrideProps(overrides, "ScaUpdateForm")}
     {...rest}
   >
-    <Form
+<Form>
+<Container
+  header={
+    <Header 
+      variant="h2"
+      info={
+        <Button
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleScaClick(scaRecord);
+          }}
+          variant="normal"
+        >
+          View Milestones
+        </Button>
+      }
       actions={
         <SpaceBetween direction="horizontal" size="XS">
-          <Button
-            variation="secondary"
-            onClick={(event) => {
-              event.preventDefault();
-              resetStateValues();
-            }}
-            isDisabled={!(idProp || scaModelProp)}
-            {...getOverrideProps(overrides, "ResetButton")}
-          >
-            Reset
-          </Button>
-          <Button
-            variation="secondary"
-            onClick={(event) => {
-              event.preventDefault();
-              navigate(-1);
-            }}
-          >
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            variation="primary"
-          >
-            Submit
-          </Button>
+            <Button
+                variation="secondary"
+                onClick={(event) => {
+                    event.preventDefault();
+                    resetStateValues();
+                }}
+                disabled={!isFormChanged}  // This disables the Reset button until changes are made
+                {...getOverrideProps(overrides, "ResetButton")}
+            >
+                Reset
+            </Button>
+            <Button
+                variation="secondary"
+                onClick={(event) => {
+                    event.preventDefault();
+                    navigate(-1);
+                }}
+            >
+                Cancel
+            </Button>
+            <Button
+                type="submit"
+                variation="primary"
+                disabled={!isFormChanged}  // This disables the Save button until changes are made
+            >
+                Save
+            </Button>
         </SpaceBetween>
-      }
+    }
+    
     >
-      <Container
-        header={
-          <Header variant="h2">
-          SCA Details
-          </Header>
-        }
-      >
+      SCA Details
+    </Header>
+  }
+>
 
 <Container
   header={
@@ -280,7 +312,8 @@ export default function ScaUpdateForm(props) {
           <Input
             value={partner}
             onChange={({ detail }) => {
-              /* ... partner onChange handler ... */
+              setPartner(detail.value); 
+              setIsFormChanged(true);
             }}
             onBlur={() => runValidationTasks("partner", partner)}
             disabled={false}
@@ -303,7 +336,8 @@ export default function ScaUpdateForm(props) {
           <Input
             value={contract_name}
             onChange={({ detail }) => {
-              /* ... contract_name onChange handler ... */
+              setContract_name(detail.value);
+              setIsFormChanged(true);
             }}
             onBlur={() => runValidationTasks("contract_name", contract_name)}
             disabled={false}
@@ -329,7 +363,8 @@ export default function ScaUpdateForm(props) {
           <Input
             value={contract_type}
             onChange={({ detail }) => {
-              /* ... contract_type onChange handler ... */
+              setIsFormChanged(true);
+              setContract_type(detail.value);
             }}
             onBlur={() => runValidationTasks("contract_type", contract_type)}
             disabled={false}
@@ -352,7 +387,8 @@ export default function ScaUpdateForm(props) {
           <Input
             value={start_date}
             onChange={({ detail }) => {
-              /* ... start_date onChange handler ... */
+              setIsFormChanged(true);
+              setStart_date(detail.value);
             }}
             onBlur={() => runValidationTasks("start_date", start_date)}
             disabled={false}
@@ -378,7 +414,8 @@ export default function ScaUpdateForm(props) {
           <Input
             value={contract_status}
             onChange={({ detail }) => {
-              /* ... contract_status onChange handler ... */
+              setContract_status(detail.value);
+              setIsFormChanged(true);
             }}
             onBlur={() => runValidationTasks("contract_status", contract_status)}
             disabled={false}
@@ -401,7 +438,8 @@ export default function ScaUpdateForm(props) {
           <Input
             value={end_date}
             onChange={({ detail }) => {
-              /* ... end_date onChange handler ... */
+              setEnd_date(detail.value);
+              setIsFormChanged(true);
             }}
             onBlur={() => runValidationTasks("end_date", end_date)}
             disabled={false}
@@ -443,6 +481,7 @@ export default function ScaUpdateForm(props) {
             onChange={({ detail }) => {
               let value = detail.value;
               setContract_primary_industry(value);
+              setIsFormChanged(true);
               if (onChange) {
                 const modelFields = {
                   partner,
@@ -490,6 +529,7 @@ export default function ScaUpdateForm(props) {
             onChange={({ detail }) => {
               let value = detail.value;
               setContract_theme(value);
+              setIsFormChanged(true);
               if (onChange) {
                 const modelFields = {
                   partner,
@@ -539,6 +579,7 @@ export default function ScaUpdateForm(props) {
             value={contract_description}
             onChange={({ detail }) => {
               setContract_description(detail.value);
+              setIsFormChanged(true);
             }}
             onBlur={() => runValidationTasks("contract_description", contract_description)}
             disabled={false}
@@ -593,6 +634,7 @@ export default function ScaUpdateForm(props) {
             value={contract_aws_contributions}
             onChange={({ detail }) => {
               setContract_aws_contributions(detail.value);
+              setIsFormChanged(true);
             }}
             onBlur={() => runValidationTasks("contract_aws_contributions", contract_aws_contributions)}
             multiline
@@ -627,6 +669,7 @@ export default function ScaUpdateForm(props) {
             value={contract_partner_contributions}
             onChange={({ detail }) => {
               setContract_partner_contributions(detail.value);
+              setIsFormChanged(true);
             }}
             onBlur={() => runValidationTasks("contract_partner_contributions", contract_partner_contributions)}
             multiline

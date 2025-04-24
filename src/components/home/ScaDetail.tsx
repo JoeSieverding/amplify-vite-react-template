@@ -1,6 +1,5 @@
 import { useLocation } from 'react-router-dom';
 import { ScaUpdateForm } from '../../../ui-components';
-import ScaMilestoneList from './ScaMilestoneList';
 
 function ScaDetail() {
     const location = useLocation();
@@ -15,9 +14,7 @@ function ScaDetail() {
         <div>
           <ScaUpdateForm sca={item} />
         </div>
-        <div className="milestone-section">
-          <ScaMilestoneList />
-        </div>
+
       </div>
     );
   }
