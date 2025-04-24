@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import TopNavigation from "@cloudscape-design/components/top-navigation";
 import { useAuthenticator } from '@aws-amplify/ui-react';
 import { getCurrentUser } from 'aws-amplify/auth';
+import logoIcon from './ccoe-phone-tool-icon.png';
 
 async function getUserDetails() {
   try {
@@ -56,7 +57,7 @@ function TopNav() {
         href: "#",
         title: "SCA Management App",
         logo: {
-          src: "/ccoe-phone-tool-icon.png",
+          src: logoIcon,
           alt: "No Icon"
         }
       }}

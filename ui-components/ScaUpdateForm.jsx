@@ -2,7 +2,13 @@
 import { useNavigate } from "react-router-dom";
 "use client";
 import * as React from "react";
-import { Button, Flex, Grid, TextField } from "@aws-amplify/ui-react";
+import Form from "@cloudscape-design/components/form";
+import SpaceBetween from "@cloudscape-design/components/space-between";
+import Button from "@cloudscape-design/components/button";
+import Container from "@cloudscape-design/components/container";
+import Header from "@cloudscape-design/components/header";
+import FormField from "@cloudscape-design/components/form-field";
+import Input from "@cloudscape-design/components/input";
 import { fetchByPath, getOverrideProps, validateField } from "./utils";
 import { generateClient } from "aws-amplify/api";
 import { getSca } from "./graphql/queries";
@@ -72,10 +78,12 @@ export default function ScaUpdateForm(props) {
   );
   const [errors, setErrors] = React.useState({});
   const resetStateValues = () => {
+//    console.log('scaRecord:', scaRecord);
     const cleanValues = scaRecord
         ? { ...initialValues, ...scaRecord }
         : initialValues;
-    setPartner(cleanValues.partner || "");
+//    console.log('cleanValues:', cleanValues);
+    setPartner(typeof cleanValues.partner === 'string' ? cleanValues.partner : '');
     setStart_date(cleanValues.start_date || "");
     setEnd_date(cleanValues.end_date || "");
     setContract_name(cleanValues.contract_name || "");
@@ -142,119 +150,158 @@ export default function ScaUpdateForm(props) {
     return validationResponse;
   };
   return (
-    <Grid
-      as="form"
-      rowGap="15px"
-      columnGap="15px"
-      padding="20px"
-      onSubmit={async (event) => {
-        event.preventDefault();
-        let modelFields = {
-          partner: partner || "",
-          start_date: start_date || "",
-          end_date: end_date || "",
-          contract_name: contract_name || "",
-          contract_description: contract_description || "",
-          contract_type: contract_type || "",
-          contract_status: contract_status || "",
-          contract_comments: contract_comments || "",
-          contract_aws_contributions: contract_aws_contributions || "",
-          contract_partner_contributions: contract_partner_contributions || "",
-          contract_time_based_targets: contract_time_based_targets || "",
-          contract_primary_industry: contract_primary_industry || "",
-          contract_overall_status: contract_overall_status || "",
-          contract_theme: contract_theme || "",
-      };
-      
-        const validationResponses = await Promise.all(
-          Object.keys(validations).reduce((promises, fieldName) => {
-            if (Array.isArray(modelFields[fieldName])) {
-              promises.push(
-                ...modelFields[fieldName].map((item) =>
-                  runValidationTasks(fieldName, item)
-                )
-              );
-              return promises;
-            }
-            promises.push(
-              runValidationTasks(fieldName, modelFields[fieldName])
-            );
-            return promises;
-          }, [])
+  <form onSubmit={async (event) => {
+    event.preventDefault();
+    let modelFields = {
+      partner: partner || "",
+      start_date: start_date || "",
+      end_date: end_date || "",
+      contract_name: contract_name || "",
+      contract_description: contract_description || "",
+      contract_type: contract_type || "",
+      contract_status: contract_status || "",
+      contract_comments: contract_comments || "",
+      contract_aws_contributions: contract_aws_contributions || "",
+      contract_partner_contributions: contract_partner_contributions || "",
+      contract_time_based_targets: contract_time_based_targets || "",
+      contract_primary_industry: contract_primary_industry || "",
+      contract_overall_status: contract_overall_status || "",
+      contract_theme: contract_theme || "",
+    };
+    const validationResponses = await Promise.all(
+      Object.keys(validations).reduce((promises, fieldName) => {
+        if (Array.isArray(modelFields[fieldName])) {
+          promises.push(
+            ...modelFields[fieldName].map((item) =>
+              runValidationTasks(fieldName, item)
+            )
+          );
+          return promises;
+        }
+        promises.push(
+          runValidationTasks(fieldName, modelFields[fieldName])
         );
-        if (validationResponses.some((r) => r.hasError)) {
-          return;
+        return promises;
+      }, [])
+    );
+    if (validationResponses.some((r) => r.hasError)) {
+      return;
+    }
+    if (onSubmit) {
+      modelFields = onSubmit(modelFields);
+    }
+    try {
+      Object.entries(modelFields).forEach(([key, value]) => {
+        if (typeof value === "string" && value.trim() === "") {
+          modelFields[key] = "";
         }
-        if (onSubmit) {
-          modelFields = onSubmit(modelFields);
-        }
-        try {
-          Object.entries(modelFields).forEach(([key, value]) => {
-            if (typeof value === "string" && value.trim() === "") {
-              modelFields[key] = "";
-            }
-          });
-          await client.graphql({
-            query: updateSca.replaceAll("__typename", ""),
-            variables: {
-              input: {
-                id: scaRecord.id,
-                ...modelFields,
-              },
-            },
-          });
-          if (onSuccess) {
-            onSuccess(modelFields);
-          }
-          navigate(-1);
-        } catch (err) {
-          if (onError) {
-            const messages = err.errors.map((e) => e.message).join("\n");
-            onError(modelFields, messages);
-          }
-        }
-      }}
-      {...getOverrideProps(overrides, "ScaUpdateForm")}
-      {...rest}
+      });
+      await client.graphql({
+        query: updateSca.replaceAll("__typename", ""),
+        variables: {
+          input: {
+            id: scaRecord.id,
+            ...modelFields,
+          },
+        },
+      });
+      if (onSuccess) {
+        onSuccess(modelFields);
+      }
+      navigate(-1);
+    } catch (err) {
+      if (onError) {
+        const messages = err.errors.map((e) => e.message).join("\n");
+        onError(modelFields, messages);
+      }
+    }
+    }}
+    {...getOverrideProps(overrides, "ScaUpdateForm")}
+    {...rest}
+  >
+    <Form
+      actions={
+        <SpaceBetween direction="horizontal" size="XS">
+          <Button
+            variation="secondary"
+            onClick={(event) => {
+              event.preventDefault();
+              resetStateValues();
+            }}
+            isDisabled={!(idProp || scaModelProp)}
+            {...getOverrideProps(overrides, "ResetButton")}
+          >
+            Reset
+          </Button>
+          <Button
+            variation="secondary"
+            onClick={() => {
+              navigate(-1);
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            variation="primary"
+          >
+            Submit
+          </Button>
+        </SpaceBetween>
+      }
     >
-      <TextField
-        label="Partner"
-        isRequired={false}
-        isReadOnly={false}
-        value={partner}
-        onChange={(e) => {
-          let { value } = e.target;
-          if (onChange) {
-            const modelFields = {
-              partner: value,
-              start_date,
-              end_date,
-              contract_name,
-              contract_description,
-              contract_type,
-              contract_status,
-              contract_comments,
-              contract_aws_contributions,
-              contract_partner_contributions,
-              contract_time_based_targets,
-              contract_primary_industry,
-              contract_overall_status,
-              contract_theme,
-            };
-            const result = onChange(modelFields);
-            value = result?.partner ?? value;
-          }
-          if (errors.partner?.hasError) {
-            runValidationTasks("partner", value);
-          }
-          setPartner(value);
-        }}
-        onBlur={() => runValidationTasks("partner", partner)}
-        errorMessage={errors.partner?.errorMessage}
-        hasError={errors.partner?.hasError}
-        {...getOverrideProps(overrides, "partner")}
-      ></TextField>
-      <TextField
+      <Container
+        header={
+          <Header variant="h2">
+          Form container header
+          </Header>
+        }
+      >
+        <SpaceBetween direction="horizontal" size="1">
+
+        <FormField
+          label="Partner"
+          controlId="partner-field"
+          stretch={false}
+        >
+          <Input
+            value={partner}
+            onChange={({ detail }) => {  // Cloudscape Input provides value in detail.value
+            const value = detail.value;
+            setPartner(value)
+              if (onChange) {
+              const modelFields = {
+                partner: value,
+                start_date,
+                end_date,
+                contract_name,
+                contract_description,
+                contract_type,
+                contract_status,
+                contract_comments,
+                contract_aws_contributions,
+                contract_partner_contributions,
+                contract_time_based_targets,
+                contract_primary_industry,
+                contract_overall_status,
+                contract_theme,
+              };
+              const result = onChange(modelFields);
+              value = result?.partner ?? value;
+            }
+            if (errors.partner?.hasError) {
+              runValidationTasks("partner", value);
+            }
+            setPartner(value);
+          }}
+          onBlur={() => runValidationTasks("partner", partner)}
+          disabled={false}
+          readOnly={false}
+          errorMessage={errors.partner?.errorMessage}
+          hasError={errors.partner?.hasError}
+          {...getOverrideProps(overrides, "partner")}
+        ></Input></FormField>
+      <FormField
         label="Start date"
         isRequired={false}
         isReadOnly={false}
@@ -290,8 +337,8 @@ export default function ScaUpdateForm(props) {
         errorMessage={errors.start_date?.errorMessage}
         hasError={errors.start_date?.hasError}
         {...getOverrideProps(overrides, "start_date")}
-      ></TextField>
-      <TextField
+      ></FormField>
+      <FormField
         label="End date"
         isRequired={false}
         isReadOnly={false}
@@ -327,8 +374,8 @@ export default function ScaUpdateForm(props) {
         errorMessage={errors.end_date?.errorMessage}
         hasError={errors.end_date?.hasError}
         {...getOverrideProps(overrides, "end_date")}
-      ></TextField>
-      <TextField
+      ></FormField>
+      <FormField
         label="Contract name"
         isRequired={false}
         isReadOnly={false}
@@ -364,8 +411,8 @@ export default function ScaUpdateForm(props) {
         errorMessage={errors.contract_name?.errorMessage}
         hasError={errors.contract_name?.hasError}
         {...getOverrideProps(overrides, "contract_name")}
-      ></TextField>
-      <TextField
+      ></FormField>
+      <FormField
         label="Contract description"
         isRequired={false}
         isReadOnly={false}
@@ -403,8 +450,8 @@ export default function ScaUpdateForm(props) {
         errorMessage={errors.contract_description?.errorMessage}
         hasError={errors.contract_description?.hasError}
         {...getOverrideProps(overrides, "contract_description")}
-      ></TextField>
-      <TextField
+      ></FormField>
+      <FormField
         label="Contract type"
         isRequired={false}
         isReadOnly={false}
@@ -440,8 +487,10 @@ export default function ScaUpdateForm(props) {
         errorMessage={errors.contract_type?.errorMessage}
         hasError={errors.contract_type?.hasError}
         {...getOverrideProps(overrides, "contract_type")}
-      ></TextField>
-      <TextField
+      >
+       
+      </FormField>
+      <FormField
         label="Contract status"
         isRequired={false}
         isReadOnly={false}
@@ -477,8 +526,8 @@ export default function ScaUpdateForm(props) {
         errorMessage={errors.contract_status?.errorMessage}
         hasError={errors.contract_status?.hasError}
         {...getOverrideProps(overrides, "contract_status")}
-      ></TextField>
-      <TextField
+      ></FormField>
+      <FormField
         label="Contract comments"
         isRequired={false}
         isReadOnly={false}
@@ -516,8 +565,8 @@ export default function ScaUpdateForm(props) {
         errorMessage={errors.contract_comments?.errorMessage}
         hasError={errors.contract_comments?.hasError}
         {...getOverrideProps(overrides, "contract_comments")}
-      ></TextField>
-      <TextField
+      ></FormField>
+      <FormField
         label="Contract aws contributions"
         isRequired={false}
         isReadOnly={false}
@@ -558,8 +607,8 @@ export default function ScaUpdateForm(props) {
         errorMessage={errors.contract_aws_contributions?.errorMessage}
         hasError={errors.contract_aws_contributions?.hasError}
         {...getOverrideProps(overrides, "contract_aws_contributions")}
-      ></TextField>
-      <TextField
+      ></FormField>
+      <FormField
         label="Contract partner contributions"
         isRequired={false}
         isReadOnly={false}
@@ -600,8 +649,8 @@ export default function ScaUpdateForm(props) {
         errorMessage={errors.contract_partner_contributions?.errorMessage}
         hasError={errors.contract_partner_contributions?.hasError}
         {...getOverrideProps(overrides, "contract_partner_contributions")}
-      ></TextField>
-      <TextField
+      ></FormField>
+      <FormField
         label="Contract time based targets"
         isRequired={false}
         isReadOnly={false}
@@ -642,8 +691,8 @@ export default function ScaUpdateForm(props) {
         errorMessage={errors.contract_time_based_targets?.errorMessage}
         hasError={errors.contract_time_based_targets?.hasError}
         {...getOverrideProps(overrides, "contract_time_based_targets")}
-      ></TextField>
-      <TextField
+      ></FormField>
+      <FormField
         label="Contract primary industry"
         isRequired={false}
         isReadOnly={false}
@@ -684,8 +733,8 @@ export default function ScaUpdateForm(props) {
         errorMessage={errors.contract_primary_industry?.errorMessage}
         hasError={errors.contract_primary_industry?.hasError}
         {...getOverrideProps(overrides, "contract_primary_industry")}
-      ></TextField>
-      <TextField
+      ></FormField>
+      <FormField
         label="Contract overall status"
         isRequired={false}
         isReadOnly={false}
@@ -723,8 +772,8 @@ export default function ScaUpdateForm(props) {
         errorMessage={errors.contract_overall_status?.errorMessage}
         hasError={errors.contract_overall_status?.hasError}
         {...getOverrideProps(overrides, "contract_overall_status")}
-      ></TextField>
-      <TextField
+      ></FormField>
+      <FormField
         label="Contract theme"
         isRequired={false}
         isReadOnly={false}
@@ -760,44 +809,11 @@ export default function ScaUpdateForm(props) {
         errorMessage={errors.contract_theme?.errorMessage}
         hasError={errors.contract_theme?.hasError}
         {...getOverrideProps(overrides, "contract_theme")}
-      ></TextField>
-      <Flex
-        justifyContent="space-between"
-        {...getOverrideProps(overrides, "CTAFlex")}
-      >
-        <Button
-          children="Reset"
-          type="reset"
-          onClick={(event) => {
-            event.preventDefault();
-            resetStateValues();
-          }}
-          isDisabled={!(idProp || scaModelProp)}
-          {...getOverrideProps(overrides, "ResetButton")}
-        ></Button>
-        <Flex
-          gap="15px"
-          {...getOverrideProps(overrides, "RightAlignCTASubFlex")}
-        >
-          <Button
-            children="Cancel"
-            type="button"
-            onClick={() => {
-              navigate(-1);
-            }}
-          ></Button>
-          <Button
-            children="Submit"
-            type="submit"
-            variation="primary"
-            isDisabled={
-              !(idProp || scaModelProp) ||
-              Object.values(errors).some((e) => e?.hasError)
-            }
-            {...getOverrideProps(overrides, "SubmitButton")}
-        ></Button>
-        </Flex>
-      </Flex>
-    </Grid>
+      ></FormField>
+      </SpaceBetween>
+      </Container>
+ 
+    </Form>
+    </form>
   );
 }
