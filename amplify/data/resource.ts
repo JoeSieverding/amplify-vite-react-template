@@ -7,10 +7,22 @@ specifies that any user authenticated via an API key can "create", "read",
 "update", and "delete" any "Todo" records.
 =========================================================================*/
 const schema = a.schema({
-  Todo: a
+  Milestone: a
     .model({
-      content: a.string(),
-      comment: a.string()
+      milestone_type: a.string(),
+      milestone_description: a.string(),
+      is_tech: a.boolean(),
+      is_currency: a.boolean(),
+      kpi_value: a.string(),
+      targeted_date: a.datetime(),
+      input_type: a.string(),
+      milestone_goal: a.string(),
+      latest_actuals: a.string(),
+      calc_rag_type: a.string(),
+      is_rag_override: a.boolean(),
+      updated_last_by: a.string(),
+      scaId: a.string(),
+      sca: a.belongsTo('Sca', 'scaId')
     })
     .authorization((allow) => [allow.publicApiKey()]),
   Sca: a
@@ -28,11 +40,15 @@ const schema = a.schema({
       contract_time_based_targets: a.string(),
       contract_primary_industry: a.string(),
       contract_overall_status: a.string(),
-      contract_theme: a.string()    })
+      contract_theme: a.string() ,   
+      milestones: a.hasMany('Milestone', 'scaId')
+    })
     .authorization((allow) => [allow.publicApiKey()]),
 });
 
 export type Schema = ClientSchema<typeof schema>;
+
+export { schema };
 
 export const data = defineData({
   schema,

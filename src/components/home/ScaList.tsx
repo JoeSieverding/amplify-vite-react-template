@@ -46,7 +46,8 @@ function ScaList() {
   const navigate = useNavigate();
 
   const handleScaClick = (item: Schema["Sca"]["type"]) => {
-    navigate('/scadetail', { state: { item } });
+    const cleanItem = JSON.parse(JSON.stringify(item));
+    navigate('/scadetail', { state: { item: cleanItem } });
   };
 
   const handleActionClick = ({ detail }: { detail: { id: string } }) => {

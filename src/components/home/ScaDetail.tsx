@@ -1,9 +1,10 @@
 import { useLocation } from 'react-router-dom';
 import { ScaUpdateForm } from '../../../ui-components';
+import type { Schema } from '../../../amplify/data/resource';
 
 function ScaDetail() {
     const location = useLocation();
-    const { item } = location.state || {};
+    const item = location.state?.item as Schema['Sca'];
  
     if (!item) {
       return <div>No item selected</div>;
