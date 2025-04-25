@@ -14,7 +14,7 @@ import { useNavigate } from "react-router-dom";
 import ButtonDropdown from "@cloudscape-design/components/button-dropdown";
 import Modal from "@cloudscape-design/components/modal";
 import Input from "@cloudscape-design/components/input";
-//import ScaMilestoneList from "./ScaMilestoneList";
+
 const client = generateClient<Schema>();
 
 interface Preferences {
