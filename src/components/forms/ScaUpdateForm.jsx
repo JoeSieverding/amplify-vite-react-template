@@ -8,9 +8,42 @@ import { generateClient } from "aws-amplify/api";
 import { getSca } from "./graphql/queries";
 import { updateSca } from "./graphql/mutations";
 const client = generateClient();
-export default function ScaUpdateForm(props) {
+
+export default function ScaUpdateForm({ sca }) {
   const navigate = useNavigate();
 
+//section to load milestones
+// Add useEffect to fetch milestones when component mounts
+const [milestones, setMilestones] = React.useState([]);
+React.useEffect(() => {
+  const loadMilestones = async () => {
+    if (!sca?.id) return;
+
+    try {
+      const milestoneSubscription = client.models.Milestone.observeQuery({
+        filter: { scaId: { eq: sca.id } }
+      }).subscribe({
+        next: ({ items }) => {
+          setMilestones(items);
+        },
+        error: (error) => {
+          console.error('Error fetching milestones:', error);
+        }
+      });
+
+      return () => {
+        milestoneSubscription.unsubscribe();
+      };
+    } catch (error) {
+      console.error('Error setting up milestone subscription:', error);
+    }
+  };
+
+  loadMilestones();
+}, [sca?.id]);
+//end section to load milestones
+
+//  const scaRecord = sca;
   const {
     id: idProp,
     sca: scaModelProp,

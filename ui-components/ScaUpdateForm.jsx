@@ -12,20 +12,51 @@ import { updateSca } from "./graphql/mutations";
 const client = generateClient();
 export default function ScaUpdateForm(props) {
   const navigate = useNavigate();
+  const { sca } = props;
+//  console.log('Received SCA:', sca); // Add this to debug
+//section to load milestones
+// Add useEffect to fetch milestones when component mounts
+const [milestones, setMilestones] = React.useState([]);
+React.useEffect(() => {
+  const loadMilestones = async () => {
+    if (!sca?.id) return;
+
+    try {
+      const milestoneSubscription = client.models.Milestone.observeQuery({
+        filter: { scaId: { eq: sca.id } }
+      }).subscribe({
+        next: ({ items }) => {
+          setMilestones(items);
+        },
+        error: (error) => {
+          console.error('Error fetching milestones:', error);
+        }
+      });
+
+      return () => {
+        milestoneSubscription.unsubscribe();
+      };
+    } catch (error) {
+      console.error('Error setting up milestone subscription:', error);
+    }
+  };
+
+  loadMilestones();
+}, [sca?.id]);
+//end section to load milestones
 
   const handleScaClick = (item) => {
     event.preventDefault(); // Prevent any default form submission
     const scaData = {
-      id: item.id,
-      // add any other necessary data you want to pass
+      sca: item,  // Pass the entire SCA item
+      milestones: item.milestones // Pass the milestones if they exist
     };
     navigate('/scamilestonelist', { 
-      state: { item: scaData },
+      state: scaData,
       replace: true // This prevents the back button from returning immediately
     });
-  };
+};
   
-
   const {
     id: idProp,
     sca: scaModelProp,
@@ -242,7 +273,19 @@ export default function ScaUpdateForm(props) {
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            handleScaClick(scaRecord);
+            if (!scaRecord) {
+              console.log('scaRecord is null');
+              return;
+            }
+            //console.log('Navigating with scaRecord:', scaRecord);
+            //console.log('Current milestones:', milestones);
+            navigate('/scamilestonelist', { 
+              state: { 
+                sca: scaRecord,
+                milestones: milestones
+              }
+              //replace: true
+            });
           }}
           variant="normal"
         >
@@ -282,7 +325,9 @@ export default function ScaUpdateForm(props) {
     }
     
     >
-      SCA Details
+      {scaRecord?.partner && scaRecord?.contract_name 
+        ? `${scaRecord.partner} - ${scaRecord.contract_name}: SCA Info`
+        : 'SCA Detail'}
     </Header>
   }
 >
