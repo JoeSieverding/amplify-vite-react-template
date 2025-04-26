@@ -14,6 +14,8 @@ import { useNavigate } from "react-router-dom";
 import ButtonDropdown from "@cloudscape-design/components/button-dropdown";
 import Modal from "@cloudscape-design/components/modal";
 import Input from "@cloudscape-design/components/input";
+import { serializeData } from '../../utils/dataSerializer';
+
 
 const client = generateClient<Schema>();
 
@@ -91,7 +93,8 @@ function ScaList() {
   useEffect(() => {
     const subscription = client.models.Sca.observeQuery().subscribe({
       next: ({ items }) => {
-        const newItems = [...items];
+        // Serialize the items when receiving them
+        const newItems = serializeData([...items]);
         setScas(newItems);
         setFilteredItems(newItems);
         setIsLoading(false);
