@@ -16,7 +16,6 @@ import Modal from "@cloudscape-design/components/modal";
 import Input from "@cloudscape-design/components/input";
 import { serializeData } from '../../utils/dataSerializer';
 
-
 const client = generateClient<Schema>();
 
 interface Preferences {
@@ -89,7 +88,6 @@ function ScaList() {
     }
   };
   
-
   useEffect(() => {
     const subscription = client.models.Sca.observeQuery().subscribe({
       next: ({ items }) => {
@@ -132,7 +130,8 @@ function ScaList() {
   };
 
   return (
-    <><Table
+    <>
+    <Table
       items={filteredItems || []}
       loading={isLoading}
       renderAriaLive={({ firstIndex, lastIndex, totalItemsCount }) => `Displaying items ${firstIndex} to ${lastIndex} of ${totalItemsCount}`}
@@ -295,3 +294,7 @@ function ScaList() {
 }
 
 export default ScaList;
+
+//function setFlashMessages(arg0: { type: string; content: any; dismissible: boolean; }[]) {
+//  throw new Error("Function not implemented.");
+//}

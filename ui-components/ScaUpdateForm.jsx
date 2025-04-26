@@ -19,6 +19,19 @@ export default function ScaUpdateForm(props) {
 // Add useEffect to fetch milestones when component mounts
 const [milestones, setMilestones] = React.useState([]);
 React.useEffect(() => {
+  React.useEffect(() => {
+    // Check if required data is missing
+    if (!sca || !sca.id) {
+      console.log('Required SCA data is missing, redirecting to list view');
+      navigate('/scalist', { 
+        replace: true, // This replaces the current entry in history
+        state: { 
+          message: 'Session expired or data was lost. Please try again.' 
+        }
+      });
+    }
+  }, [sca, navigate]);
+
   const loadMilestones = async () => {
     if (!sca?.id) return;
 
