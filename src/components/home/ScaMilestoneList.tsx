@@ -298,7 +298,7 @@ const handleActionClick = ({ detail }: { detail: { id: string } }) => {
         disabled={false} />}
         header={<Header counter={selectedItems.length ? `(${selectedItems.length}/${filteredItems.length})` : `(${filteredItems.length})`}>
          {sca?.partner && sca?.contract_name 
-        ? `${sca.partner} - ${sca.contract_name}: Milestones`
+        ? `${sca.partner} - ${sca.contract_name}`
         : 'Milestone List'}
         <span>     </span>
         <ButtonDropdown

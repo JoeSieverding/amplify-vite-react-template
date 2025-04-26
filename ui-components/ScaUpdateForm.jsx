@@ -2,6 +2,7 @@
 import { useNavigate } from "react-router-dom";
 "use client";
 import * as React from "react";
+import { serializeData } from '../src/utils/dataSerializer.ts';
 import {
   Button, Form, SpaceBetween, Container, Header, FormField, Input, Grid
 } from "@cloudscape-design/components";
@@ -280,11 +281,10 @@ React.useEffect(() => {
             //console.log('Navigating with scaRecord:', scaRecord);
             //console.log('Current milestones:', milestones);
             navigate('/scamilestonelist', { 
-              state: { 
+              state: serializeData({ 
                 sca: scaRecord,
                 milestones: milestones
-              }
-              //replace: true
+              })
             });
           }}
           variant="normal"
@@ -326,7 +326,7 @@ React.useEffect(() => {
     
     >
       {scaRecord?.partner && scaRecord?.contract_name 
-        ? `${scaRecord.partner} - ${scaRecord.contract_name}: SCA Info`
+        ? `${scaRecord.partner} - ${scaRecord.contract_name}`
         : 'SCA Detail'}
     </Header>
   }
@@ -339,7 +339,7 @@ React.useEffect(() => {
       counter={null}
       info={null}
     >
-      Basic SCA Data
+      SCA Summary
     </Header>
   }
 >
@@ -506,7 +506,7 @@ React.useEffect(() => {
       counter={null}
       info={null}
     >
-      Industry & Theme
+      SCA Industry & Theme
     </Header>
   }
 >
@@ -650,7 +650,7 @@ React.useEffect(() => {
       counter={null}
       info={null}
     >
-      Contributions & Targets
+      SCA Contributions & Targets
     </Header>
   }
 >

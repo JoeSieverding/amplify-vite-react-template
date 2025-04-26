@@ -1,0 +1,46 @@
+{
+    "partner": "Example Partner",
+    "start_date": "2024-01-01",
+    "end_date": "2024-12-31",
+    "contract_name": "Strategic Partnership 2024",
+    "contract_description": "Description of the partnership",
+    "contract_type": "Strategic",
+    "contract_status": "Active",
+    "contract_comments": "Initial agreement",
+    "contract_aws_contributions": "AWS technical support",
+    "contract_partner_contributions": "Market expansion",
+    "contract_time_based_targets": "Quarterly reviews",
+    "contract_primary_industry": "Technology",
+    "contract_overall_status": "Green",
+    "contract_theme": "Digital Transformation",
+    "milestones": [
+        {
+            "milestone_type": "Technical",
+            "milestone_description": "System Integration Phase 1",
+            "is_tech": true,
+            "is_currency": false,
+            "kpi_value": "100%",
+            "targeted_date": "2024-03-31",
+            "input_type": "percentage",
+            "milestone_goal": "Complete Phase 1 integration",
+            "latest_actuals": "75%",
+            "calc_rag_type": "Green",
+            "is_rag_override": false,
+            "updated_last_by": "john.doe@example.com"
+        },
+        {
+            "milestone_type": "Business",
+            "milestone_description": "Market Launch",
+            "is_tech": false,
+            "is_currency": true,
+            "kpi_value": "1000000",
+            "targeted_date": "2024-06-30",
+            "input_type": "currency",
+            "milestone_goal": "Achieve $1M in revenue",
+            "latest_actuals": "750000",
+            "calc_rag_type": "Amber",
+            "is_rag_override": false,
+            "updated_last_by": "jane.smith@example.com"
+        }
+    ]
+}
