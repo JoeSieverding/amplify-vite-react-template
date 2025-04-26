@@ -6,32 +6,63 @@ import { serializeData } from '../src/utils/dataSerializer.ts';
 import {
   Button, Form, SpaceBetween, Container, Header, FormField, Input, Grid
 } from "@cloudscape-design/components";
-import { fetchByPath, getOverrideProps, validateField } from "./utils";
+import { fetchByPath, validateField } from "./utils";
 import { generateClient } from "aws-amplify/api";
 import { getSca } from "./graphql/queries";
 import { updateSca } from "./graphql/mutations";
-const client = generateClient();
-export default function ScaUpdateForm(props) {
-  const navigate = useNavigate();
-  const { sca } = props;
-//  console.log('Received SCA:', sca); // Add this to debug
-//section to load milestones
-// Add useEffect to fetch milestones when component mounts
-const [milestones, setMilestones] = React.useState([]);
-React.useEffect(() => {
-  React.useEffect(() => {
-    // Check if required data is missing
-    if (!sca || !sca.id) {
-      console.log('Required SCA data is missing, redirecting to list view');
-      navigate('/scalist', { 
-        replace: true, // This replaces the current entry in history
-        state: { 
-          message: 'Session expired or data was lost. Please try again.' 
-        }
-      });
-    }
-  }, [sca, navigate]);
 
+const client = generateClient();
+
+export default function ScaUpdateForm({ sca }) {
+  const navigate = useNavigate();
+  const [milestones, setMilestones] = React.useState([]);
+  const [scaRecord, setScaRecord] = React.useState(sca);
+  const [isFormChanged, setIsFormChanged] = React.useState(false);
+ 
+  const initialValues = {
+    partner: "",
+    start_date: "",
+    end_date: "",
+    contract_name: "",
+    contract_description: "",
+    contract_type: "",
+    contract_status: "",
+    contract_comments: "",
+    contract_aws_contributions: "",
+    contract_partner_contributions: "",
+    contract_time_based_targets: "",
+    contract_primary_industry: "",
+    contract_overall_status: "",
+    contract_theme: "",
+  };
+
+  // State declarations for form fields
+  const [partner, setPartner] = React.useState(initialValues.partner);
+  const [start_date, setStart_date] = React.useState(initialValues.start_date);
+  const [end_date, setEnd_date] = React.useState(initialValues.end_date);
+  const [contract_name, setContract_name] = React.useState(initialValues.contract_name);
+  const [contract_description, setContract_description] = React.useState(initialValues.contract_description);
+  const [contract_type, setContract_type] = React.useState(initialValues.contract_type);
+  const [contract_status, setContract_status] = React.useState(initialValues.contract_status);
+  const [contract_comments, setContract_comments] = React.useState(initialValues.contract_comments);
+  const [contract_aws_contributions, setContract_aws_contributions] = React.useState(initialValues.contract_aws_contributions);
+  const [contract_partner_contributions, setContract_partner_contributions] = React.useState(initialValues.contract_partner_contributions);
+  const [contract_time_based_targets, setContract_time_based_targets] = React.useState(initialValues.contract_time_based_targets);
+  const [contract_primary_industry, setContract_primary_industry] = React.useState(initialValues.contract_primary_industry);
+  const [contract_overall_status, setContract_overall_status] = React.useState( initialValues.contract_overall_status);
+  const [contract_theme, setContract_theme] = React.useState( initialValues.contract_theme);
+
+// First useEffect for checking SCA data
+//React.useEffect(() => {
+ // if (!sca) {
+  //  console.log('Required SCA data is missing, redirecting to list view');
+  //  navigate('/scalist', { replace: true });
+  //  return; // Early return if no SCA data
+ // }
+//}, [sca, navigate]);
+
+// Second useEffect for loading milestones
+React.useEffect(() => {
   const loadMilestones = async () => {
     if (!sca?.id) return;
 
@@ -57,8 +88,11 @@ React.useEffect(() => {
 
   loadMilestones();
 }, [sca?.id]);
-//end section to load milestones
 
+// If no SCA data, return null
+if (!sca) {
+  return null;
+}
   const handleScaClick = (item) => {
     event.preventDefault(); // Prevent any default form submission
     const scaData = {
@@ -70,91 +104,41 @@ React.useEffect(() => {
       replace: true // This prevents the back button from returning immediately
     });
 };
+ 
+
   
-  const {
-    id: idProp,
-    sca: scaModelProp,
-    onSuccess,
-    onError,
-    onSubmit,
-    onValidate,
-    onChange,
-    overrides,
-    ...rest
-  } = props;
-  const initialValues = {
-    partner: "",
-    start_date: "",
-    end_date: "",
-    contract_name: "",
-    contract_description: "",
-    contract_type: "",
-    contract_status: "",
-    contract_comments: "",
-    contract_aws_contributions: "",
-    contract_partner_contributions: "",
-    contract_time_based_targets: "",
-    contract_primary_industry: "",
-    contract_overall_status: "",
-    contract_theme: "",
-  };
-  const [isFormChanged, setIsFormChanged] = React.useState(false);
-  const [partner, setPartner] = React.useState(initialValues.partner);
-  const [start_date, setStart_date] = React.useState(initialValues.start_date);
-  const [end_date, setEnd_date] = React.useState(initialValues.end_date);
-  const [contract_name, setContract_name] = React.useState(
-    initialValues.contract_name
-  );
-  const [contract_description, setContract_description] = React.useState(
-    initialValues.contract_description
-  );
-  const [contract_type, setContract_type] = React.useState(
-    initialValues.contract_type
-  );
-  const [contract_status, setContract_status] = React.useState(
-    initialValues.contract_status
-  );
-  const [contract_comments, setContract_comments] = React.useState(
-    initialValues.contract_comments
-  );
-  const [contract_aws_contributions, setContract_aws_contributions] =
-    React.useState(initialValues.contract_aws_contributions);
-  const [contract_partner_contributions, setContract_partner_contributions] =
-    React.useState(initialValues.contract_partner_contributions);
-  const [contract_time_based_targets, setContract_time_based_targets] =
-    React.useState(initialValues.contract_time_based_targets);
-  const [contract_primary_industry, setContract_primary_industry] =
-    React.useState(initialValues.contract_primary_industry);
-  const [contract_overall_status, setContract_overall_status] = React.useState(
-    initialValues.contract_overall_status
-  );
-  const [contract_theme, setContract_theme] = React.useState(
-    initialValues.contract_theme
-  );
   const [errors, setErrors] = React.useState({});
-  const resetStateValues = () => {
-    const cleanValues = scaRecord
+
+  // Effect to reset state values when scaRecord changes
+  React.useEffect(() => {
+    const resetStateValues = () => {
+      const cleanValues = scaRecord
         ? { ...initialValues, ...scaRecord }
         : initialValues;
-    setPartner(typeof cleanValues.partner === 'string' ? cleanValues.partner : '');
-    setStart_date(cleanValues.start_date || "");
-    setEnd_date(cleanValues.end_date || "");
-    setContract_name(cleanValues.contract_name || "");
-    setContract_description(cleanValues.contract_description || "");
-    setContract_type(cleanValues.contract_type || "");
-    setContract_status(cleanValues.contract_status || "");
-    setContract_comments(cleanValues.contract_comments || "");
-    setContract_aws_contributions(cleanValues.contract_aws_contributions || "");
-    setContract_partner_contributions(cleanValues.contract_partner_contributions || "");
-    setContract_time_based_targets(cleanValues.contract_time_based_targets || "");
-    setContract_primary_industry(cleanValues.contract_primary_industry || "");
-    setContract_overall_status(cleanValues.contract_overall_status || "");
-    setContract_theme(cleanValues.contract_theme || "");
-    setErrors({});
-    setIsFormChanged(false);
-};
+      setPartner(cleanValues.partner || "");
+      setStart_date(cleanValues.start_date || "");
+      setEnd_date(cleanValues.end_date || "");
+      setContract_name(cleanValues.contract_name || "");
+      setContract_description(cleanValues.contract_description || "");
+      setContract_type(cleanValues.contract_type || "");
+      setContract_status(cleanValues.contract_status || "");
+      setContract_comments(cleanValues.contract_comments || "");
+      setContract_aws_contributions(cleanValues.contract_aws_contributions || "");
+      setContract_partner_contributions(cleanValues.contract_partner_contributions || "");
+      setContract_time_based_targets(cleanValues.contract_time_based_targets || "");
+      setContract_primary_industry(cleanValues.contract_primary_industry || "");
+      setContract_overall_status(cleanValues.contract_overall_status || "");
+      setContract_theme(cleanValues.contract_theme || "");
+      setIsFormChanged(false);
+    };
+    resetStateValues();
+  }, [scaRecord]);
 
-  const [scaRecord, setScaRecord] = React.useState(scaModelProp);
+  // If no SCA data, return null
+  if (!sca) {
+    return null;
+  }
+/*
   React.useEffect(() => {
     const queryData = async () => {
       const record = idProp
@@ -169,7 +153,8 @@ React.useEffect(() => {
     };
     queryData();
   }, [idProp, scaModelProp]);
-  React.useEffect(resetStateValues, [scaRecord]);
+  */
+  //React.useEffect(resetStateValues, [scaRecord]);
   const validations = {
     partner: [],
     start_date: [],
@@ -274,8 +259,6 @@ React.useEffect(() => {
       }
     }
     }}
-    {...getOverrideProps(overrides, "ScaUpdateForm")}
-    {...rest}
   >
 <Form>
 <Container
@@ -314,7 +297,6 @@ React.useEffect(() => {
                     resetStateValues();
                 }}
                 disabled={!isFormChanged}  // This disables the Reset button until changes are made
-                {...getOverrideProps(overrides, "ResetButton")}
             >
                 Reset
             </Button>
@@ -378,7 +360,6 @@ React.useEffect(() => {
             readOnly={false}
             errorMessage={errors.partner?.errorMessage}
             hasError={errors.partner?.hasError}
-            {...getOverrideProps(overrides, "partner")}
           />
         </FormField>
       </div>
@@ -402,7 +383,6 @@ React.useEffect(() => {
             readOnly={false}
             errorMessage={errors.contract_name?.errorMessage}
             hasError={errors.contract_name?.hasError}
-            {...getOverrideProps(overrides, "contract_name")}
           />
         </FormField>
       </div>
@@ -429,7 +409,6 @@ React.useEffect(() => {
             readOnly={false}
             errorMessage={errors.contract_type?.errorMessage}
             hasError={errors.contract_type?.hasError}
-            {...getOverrideProps(overrides, "contract_type")}
           />
         </FormField>
       </div>
@@ -453,7 +432,6 @@ React.useEffect(() => {
             readOnly={false}
             errorMessage={errors.start_date?.errorMessage}
             hasError={errors.start_date?.hasError}
-            {...getOverrideProps(overrides, "start_date")}
           />
         </FormField>
       </div>
@@ -480,7 +458,6 @@ React.useEffect(() => {
             readOnly={false}
             errorMessage={errors.contract_status?.errorMessage}
             hasError={errors.contract_status?.hasError}
-            {...getOverrideProps(overrides, "contract_status")}
           />
         </FormField>
       </div>
@@ -504,7 +481,6 @@ React.useEffect(() => {
             readOnly={false}
             errorMessage={errors.end_date?.errorMessage}
             hasError={errors.end_date?.hasError}
-            {...getOverrideProps(overrides, "end_date")}
           />
         </FormField>
       </div>
@@ -569,7 +545,6 @@ React.useEffect(() => {
             readOnly={false}
             errorMessage={errors.contract_primary_industry?.errorMessage}
             hasError={errors.contract_primary_industry?.hasError}
-            {...getOverrideProps(overrides, "contract_primary_industry")}
           />
         </FormField>
       </div>
@@ -617,7 +592,6 @@ React.useEffect(() => {
             readOnly={false}
             errorMessage={errors.contract_theme?.errorMessage}
             hasError={errors.contract_theme?.hasError}
-            {...getOverrideProps(overrides, "contract_theme")}
           />
         </FormField>
       </div>
@@ -648,7 +622,6 @@ React.useEffect(() => {
             rows={5}
             inputMode="text"
             spellcheck={true}
-            {...getOverrideProps(overrides, "contract_description")}
           />
         </FormField>
       </div>
@@ -697,7 +670,6 @@ React.useEffect(() => {
             onBlur={() => runValidationTasks("contract_aws_contributions", contract_aws_contributions)}
             multiline
             rows={3}
-            {...getOverrideProps(overrides, "contract_aws_contributions")}
           />
         </FormField>
       </div>
@@ -732,7 +704,6 @@ React.useEffect(() => {
             onBlur={() => runValidationTasks("contract_partner_contributions", contract_partner_contributions)}
             multiline
             rows={3}
-            {...getOverrideProps(overrides, "contract_partner_contributions")}
           />
         </FormField>
       </div>
@@ -766,7 +737,6 @@ React.useEffect(() => {
             onBlur={() => runValidationTasks("contract_time_based_targets", contract_time_based_targets)}
             multiline
             rows={3}
-            {...getOverrideProps(overrides, "contract_time_based_targets")}
           />
         </FormField>
       </div>
@@ -800,7 +770,6 @@ React.useEffect(() => {
             onBlur={() => runValidationTasks("contract_comments", contract_comments)}
             multiline
             rows={3}
-            {...getOverrideProps(overrides, "contract_comments")}
           />
         </FormField>
       </div>
