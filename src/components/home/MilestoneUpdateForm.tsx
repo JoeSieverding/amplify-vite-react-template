@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import type { Schema } from "../../../amplify/data/resource";
 import { generateClient } from "aws-amplify/data";
@@ -69,57 +69,29 @@ const ragTypeOptions: SelectOption[] = [
 ];
 
 function MilestoneUpdateForm() {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(false);
-  const state = location.state as LocationState;
-  const [sca, setSca] = useState<Schema["Sca"]["type"] | null>(null);
-  const [milestone, setMilestone] = useState<Schema["Milestone"]["type"] | null>(null);
-  const [formData, setFormData] = useState<FormData>({
-    id: '',                                // Will be set from state.item.id
-    milestone_type: null,
-    milestone_description: null,
-    is_tech: false,
-    is_currency: false,
-    kpi_value: null,
-    targeted_date: null,
-    input_type: null,
-    milestone_goal: null,
-    latest_actuals: null,
-    calc_rag_type: null,
-    is_rag_override: false,
-    updated_last_by: null,
-    scaId: ''                             // Will be set from state.item.scaId
-  });
-  const [formErrors, setFormErrors] = useState<FormError>({});
+    const location = useLocation();
+    const navigate = useNavigate();
+    const [isLoading, setIsLoading] = useState(false);
+    const { item, sca } = location.state as LocationState; // Use the type we defined
+    const [formErrors, setFormErrors] = useState<FormError>({});
 
-  // Initialize form with data if editing
-  useEffect(() => {
-    if (!state?.item?.scaId || !state?.sca) {
-      navigate('/scamilestonelist');
-      return;
-    }
-  
-    setSca(state.sca);
-    setMilestone(state.item);
-    
-    setFormData({
-      id: state.item.id,
-      milestone_type: state.item.milestone_type ?? null,
-      milestone_description: state.item.milestone_description ?? null,
-      is_tech: state.item.is_tech || false,
-      is_currency: state.item.is_currency || false,
-      kpi_value: state.item.kpi_value ?? null,
-      targeted_date: state.item.targeted_date ?? null,
-      input_type: state.item.input_type ?? null,
-      milestone_goal: state.item.milestone_goal ?? null,
-      latest_actuals: state.item.latest_actuals ?? null,
-      calc_rag_type: state.item.calc_rag_type ?? null,
-      is_rag_override: state.item.is_rag_override || false,
-      updated_last_by: state.item.updated_last_by ?? null,
-      scaId: state.item.scaId
-    });
-  }, [state, navigate]);
+    // Initialize form with data from the milestone
+    const [formData, setFormData] = useState<FormData>({
+        id: item.id,
+        scaId: item.scaId ?? '',
+        milestone_type: item.milestone_type ?? null,
+        milestone_description: item.milestone_description ?? null,
+        is_tech: item.is_tech || false,
+        is_currency: item.is_currency || false,
+        kpi_value: item.kpi_value ?? null,
+        targeted_date: item.targeted_date ?? null,
+        input_type: item.input_type ?? null,
+        milestone_goal: item.milestone_goal ?? null,
+        latest_actuals: item.latest_actuals ?? null,
+        calc_rag_type: item.calc_rag_type ?? null,
+        is_rag_override: item.is_rag_override || false,
+        updated_last_by: item.updated_last_by ?? null
+      });
 
   // Form validation
   const validateForm = useCallback(() => {
@@ -161,27 +133,26 @@ function MilestoneUpdateForm() {
   }, [formData]);
 
   // Handle form reset
-  const handleReset = useCallback(() => {
-    if (milestone) {
-      setFormData({
-        id: milestone.id,
-        milestone_type: milestone.milestone_type ?? null,
-        milestone_description: milestone.milestone_description ?? null,
-        is_tech: milestone.is_tech || false,
-        is_currency: milestone.is_currency || false,
-        kpi_value: milestone.kpi_value ?? null,
-        targeted_date: milestone.targeted_date ?? null,
-        input_type: milestone.input_type ?? null,
-        milestone_goal: milestone.milestone_goal ?? null,
-        latest_actuals: milestone.latest_actuals ?? null,
-        calc_rag_type: milestone.calc_rag_type ?? null,
-        is_rag_override: milestone.is_rag_override || false,
-        updated_last_by: milestone.updated_last_by ?? null,
-        scaId: milestone.scaId ?? '' //
-      });
-      setFormErrors({});
-    }
-  }, [milestone]);
+const handleReset = useCallback(() => {
+    setFormData({
+      id: item.id ?? '',
+      scaId: item.scaId ?? '',
+      milestone_type: item.milestone_type ?? null,
+      milestone_description: item.milestone_description ?? null,
+      is_tech: item.is_tech || false,
+      is_currency: item.is_currency || false,
+      kpi_value: item.kpi_value ?? null,
+      targeted_date: item.targeted_date ?? null,
+      input_type: item.input_type ?? null,
+      milestone_goal: item.milestone_goal ?? null,
+      latest_actuals: item.latest_actuals ?? null,
+      calc_rag_type: item.calc_rag_type ?? null,
+      is_rag_override: item.is_rag_override || false,
+      updated_last_by: item.updated_last_by ?? null
+    });
+    setFormErrors({});
+  }, [item]); // Add item to the dependency array
+  
 
   // Handle form submission
 // Handle form submission
