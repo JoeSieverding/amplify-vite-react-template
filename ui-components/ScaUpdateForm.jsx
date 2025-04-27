@@ -17,11 +17,179 @@ const styles = {
   }
 };
 
-// Reusable form field component
-const FormInputField = ({ label, value, onChange, multiline = false, rows = 1, required = true }) => {
-  const isEmpty = !value;
-  const isOptionalEmpty = isEmpty && !required;
-  const isRequiredEmpty = isEmpty && required;
+const formatDate = (dateString) => {
+  if (!dateString) return "";
+  
+  try {
+    // First try to parse the date if it's already in MM/DD/YY format
+    if (validateDateFormat(dateString)) {
+      return { value: dateString, error: false };
+    }
+
+    // Try to parse various date formats
+    let date;
+    
+    // Handle common formats like YYYY-MM-DD, MM-DD-YYYY, etc.
+    if (dateString.includes('-') || dateString.includes('/')) {
+      date = new Date(dateString);
+    } 
+    // Handle ISO format
+    else if (dateString.includes('T')) {
+      date = new Date(dateString);
+    }
+    // Try parsing as-is
+    else {
+      date = new Date(dateString);
+    }
+
+    // Check if we got a valid date
+    if (isNaN(date.getTime())) {
+      return { value: dateString, error: true };
+    }
+    
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    const year = date.getFullYear().toString().slice(-2);
+    
+    return { value: `${month}/${day}/${year}`, error: false };
+  } catch {
+    return { value: dateString, error: true };
+  }
+};
+
+const validateDateFormat = (dateString) => {
+  if (!dateString) return true;
+  
+  // Check for MM/DD/YY format
+  const regex = /^(0[1-9]|1[0-2])\/(0[1-9]|[12]\d|3[01])\/\d{2}$/;
+  if (!regex.test(dateString)) return false;
+  
+  // Validate the date is real
+  const [month, day, year] = dateString.split('/').map(num => parseInt(num, 10));
+  const date = new Date(2000 + year, month - 1, day);
+  return date.getMonth() === month - 1 && date.getDate() === day;
+};
+
+const validateAllDates = (formData) => {
+  const dateFields = ['start_date', 'end_date'];
+  const invalidDates = dateFields
+    .filter(field => formData[field]) // Only check non-empty dates
+    .filter(field => !validateDateFormat(formData[field]));
+  
+  return invalidDates.length === 0;
+};
+
+const validateDateOrder = (startDate, endDate) => {
+  if (!startDate || !endDate) return true; // Skip validation if either date is empty
+  
+  // Convert MM/DD/YY to Date objects
+  const [startMonth, startDay, startYear] = startDate.split('/').map(num => parseInt(num, 10));
+  const [endMonth, endDay, endYear] = endDate.split('/').map(num => parseInt(num, 10));
+  
+  const startDateObj = new Date(2000 + startYear, startMonth - 1, startDay);
+  const endDateObj = new Date(2000 + endYear, endMonth - 1, endDay);
+  
+  return endDateObj >= startDateObj;
+};
+
+const FormInputField = ({ 
+  label, 
+  value, 
+  onChange, 
+  multiline = false, 
+  rows = 1, 
+  required = true, 
+  isDate = false, 
+  name,
+  formState 
+}) => {
+  const [isUserModified, setIsUserModified] = React.useState(false);
+  const [isFocused, setIsFocused] = React.useState(false);
+  const [localValue, setLocalValue] = React.useState(value);
+
+  // Update localValue when prop value changes
+  React.useEffect(() => {
+    setLocalValue(value);
+  }, [value]);
+
+  // Handle date formatting for initial load
+  React.useEffect(() => {
+    if (isDate && value && !isUserModified) {
+      const formattedDate = formatDate(value);
+      if (!formattedDate.error) {
+        onChange(formattedDate.value);
+      }
+    }
+  }, []);
+
+  const handleDateChange = (newValue) => {
+    if (!isDate) {
+      onChange(newValue);
+      return;
+    }
+
+    setLocalValue(newValue);
+    if (!isFocused) {
+      setIsUserModified(true);
+    }
+  };
+
+  const handleBlur = () => {
+    setIsFocused(false);
+    setIsUserModified(true);
+    
+    if (isDate && localValue) {
+      const formattedDate = formatDate(localValue);
+      if (!formattedDate.error) {
+        onChange(formattedDate.value);
+      } else {
+        onChange(localValue);
+      }
+    }
+  };
+
+  // Determine field status and messages
+  const getFieldStatus = () => {
+    const isEmpty = !localValue;
+    
+    let status = undefined;
+    let constraintText = "";
+
+    if (isEmpty) {
+      if (required) {
+        status = "error";
+        constraintText = "This field is required";
+      } else {
+        status = "warning";
+        constraintText = "This field is missing";
+      }
+    } else if (isDate && !isFocused && !validateDateFormat(localValue)) {
+      if (isUserModified) {
+        status = "error";
+        constraintText = "Please enter date in MM/DD/YY format";
+      } else {
+        status = "warning";
+        constraintText = "Change to MM/DD/YY format";
+      }
+    } else if (name === 'end_date' && !isFocused && validateDateFormat(localValue)) {
+      // Only check date order if:
+      // 1. Both dates are valid
+      // 2. Current field (end_date) has been modified by user
+      const startDate = formState.start_date;
+      if (startDate && 
+          validateDateFormat(startDate) && 
+          validateDateFormat(localValue) && 
+          isUserModified && 
+          !validateDateOrder(startDate, localValue)) {
+        status = "error";
+        constraintText = "End date must be after the start date";
+      }
+    }
+
+    return { status, constraintText };
+  };
+
+  const { status, constraintText } = getFieldStatus();
 
   return (
     <div style={{ display: 'flex', alignItems: 'flex-start', width: '100%', gap: '10px' }}>
@@ -31,23 +199,24 @@ const FormInputField = ({ label, value, onChange, multiline = false, rows = 1, r
       <div style={{ flex: '1 1 auto' }}>
         <FormField 
           stretch={true}
-          constraintText={isEmpty ? (required ? "This field is required" : "This field is missing") : ""}
+          constraintText={!isFocused ? constraintText : ""}
         >
           <Input
-            value={value || ""}
-            onChange={({ detail }) => onChange(detail.value)}
+            value={localValue || ""}
+            onChange={({ detail }) => handleDateChange(detail.value)}
+            onFocus={() => setIsFocused(true)}
+            onBlur={handleBlur}
             multiline={multiline}
             rows={rows}
-            invalid={isRequiredEmpty}
-            status={isOptionalEmpty ? "warning" : undefined}
+            invalid={!isFocused && status === "error"}
+            status={!isFocused ? status : undefined}
+            placeholder={isDate ? "MM/DD/YY" : undefined}
           />
         </FormField>
       </div>
     </div>
   );
 };
-
-
 
 // Form fields configuration
 const FORM_FIELDS = {
@@ -59,8 +228,8 @@ const FORM_FIELDS = {
     bottomRow: [
       { name: 'contract_type', label: 'Contract type' },
       { name: 'contract_status', label: 'Contract status' },
-      { name: 'start_date', label: 'Start date' },
-      { name: 'end_date', label: 'End date' }
+      { name: 'start_date', label: 'Start date', isDate: true },
+      { name: 'end_date', label: 'End date', isDate: true }
     ]
   },
   industry: [
@@ -129,7 +298,19 @@ export default function ScaUpdateForm({ sca }) {
 
   async function handleSubmit(event) {
     event.preventDefault();
-    
+  
+    // Check for invalid dates before saving
+    if (!validateAllDates(formState)) {
+      return;
+    }
+  
+    // Only check date order if both dates are valid
+    if (validateDateFormat(formState.start_date) && 
+        validateDateFormat(formState.end_date) && 
+        !validateDateOrder(formState.start_date, formState.end_date)) {
+      return;
+    }
+  
     try {
       await client.graphql({
         query: updateSca,
@@ -140,7 +321,7 @@ export default function ScaUpdateForm({ sca }) {
           }
         }
       });
-
+  
       const updatedSca = {
         ...localSca,
         ...formState
@@ -151,6 +332,7 @@ export default function ScaUpdateForm({ sca }) {
       console.error('Error updating SCA:', err);
     }
   }
+  
 
   React.useEffect(() => {
     if (sca) {
@@ -225,7 +407,11 @@ export default function ScaUpdateForm({ sca }) {
                   <Button
                     type="submit"
                     variation="primary"
-                    disabled={!isFormChanged}
+                    disabled={
+                      !isFormChanged || 
+                      !validateAllDates(formState) || 
+                      (validateAllDates(formState) && !validateDateOrder(formState.start_date, formState.end_date))
+                    }
                   >
                     Save
                   </Button>
@@ -255,7 +441,10 @@ export default function ScaUpdateForm({ sca }) {
                   onChange={(value) => updateField(field.name, value)}
                   multiline={field.multiline}
                   rows={field.rows}
-                  required={field.required !== false}  // This will make it required by default unless explicitly set to false
+                  required={field.required !== false}
+                  isDate={field.isDate}
+                  name={field.name}
+                  formState={formState}
                 />
               ))}
               </Grid>
@@ -268,6 +457,9 @@ export default function ScaUpdateForm({ sca }) {
                     label={field.label}
                     value={formState[field.name]}
                     onChange={(value) => updateField(field.name, value)}
+                    isDate={field.isDate}
+                    name={field.name}
+                    formState={formState}
                   />
                 ))}
               </Grid>
@@ -288,6 +480,8 @@ export default function ScaUpdateForm({ sca }) {
                     label={field.label}
                     value={formState[field.name]}
                     onChange={(value) => updateField(field.name, value)}
+                    name={field.name}
+                    formState={formState}
                   />
                 ))}
               </Grid>
@@ -310,6 +504,8 @@ export default function ScaUpdateForm({ sca }) {
                   multiline={field.multiline}
                   rows={field.rows}
                   required={field.required !== false}
+                  name={field.name}
+                  formState={formState}
                 />
               ))}
             </SpaceBetween>
