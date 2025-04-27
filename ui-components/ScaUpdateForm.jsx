@@ -332,7 +332,6 @@ export default function ScaUpdateForm({ sca }) {
       console.error('Error updating SCA:', err);
     }
   }
-  
 
   React.useEffect(() => {
     if (sca) {
