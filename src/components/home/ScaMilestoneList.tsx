@@ -46,47 +46,6 @@ const formatDate = (dateString: string | null | undefined): string => {
   }
 };
 
-// After your existing formatDate function
-const convertToISODate = (dateString: string | null): string | null => {
-  if (!dateString) return null;
-  
-  try {
-    // Handle different date formats
-    let date: Date;
-    
-    // Check if it's already an ISO date
-    if (dateString.includes('T')) {
-      return dateString;
-    }
-    
-    // Handle "Month DD, YYYY" format (like "September 30, 2025")
-    if (dateString.match(/[A-Za-z]+/)) {
-      date = new Date(dateString);
-    } else {
-      // Handle other formats (MM/DD/YY or MM-DD-YY)
-      const parts = dateString.split(/[/-]/);
-      if (parts.length === 3) {
-        const month = parseInt(parts[0]) - 1;
-        const day = parseInt(parts[1]);
-        let year = parseInt(parts[2]);
-        if (year < 100) year += 2000;
-        date = new Date(year, month, day);
-      } else {
-        date = new Date(dateString);
-      }
-    }
-
-    if (isNaN(date.getTime())) {
-      console.error('Invalid date:', dateString);
-      return null;
-    }
-
-    return date.toISOString();
-  } catch (error) {
-    console.error('Error converting date:', error, 'for date string:', dateString);
-    return null;
-  }
-};
 
 const initialPreferences: Preferences = {
   pageSize: 10,
@@ -204,35 +163,49 @@ function ScaMilestoneList() {
         }
       });
   
+      // Even if there are errors, we can still process the data
       if ('data' in result && result.data?.listMilestones?.items) {
         const items = result.data.listMilestones.items;
         console.log('Found items to process:', items.length);
   
         for (const item of items) {
-          if (item.targeted_date) {
-            console.log('Processing date:', item.targeted_date);
-            if (!item.targeted_date.includes('T')) {
-              const isoDate = convertToISODate(item.targeted_date);
-              if (isoDate) {
-                console.log('Converting date from', item.targeted_date, 'to', isoDate);
-                try {
+          try {
+            if (item.targeted_date) {
+              // Handle "Month DD, YYYY" format
+              if (typeof item.targeted_date === 'string' && item.targeted_date.match(/[A-Za-z]+/)) {
+                const date = new Date(item.targeted_date);
+                if (!isNaN(date.getTime())) {
+                  const isoDate = date.toISOString();
+                  console.log('Converting date from', item.targeted_date, 'to', isoDate);
+                  
                   await client.models.Milestone.update({
                     id: item.id,
                     targeted_date: isoDate
                   });
                   console.log('Successfully updated item:', item.id);
-                } catch (updateError) {
-                  console.error('Error updating item:', item.id, updateError);
+                } else {
+                  console.error('Invalid date format for item:', item.id, item.targeted_date);
                 }
               }
             }
+          } catch (itemError) {
+            console.error('Error processing individual item:', item.id, itemError);
+            // Continue with next item even if this one fails
+            continue;
           }
         }
       }
+  
+      // If there were errors in the GraphQL response, log them but don't throw
+      if ('errors' in result && result.errors) {
+        console.warn('GraphQL errors encountered:', result.errors);
+      }
+  
     } catch (error) {
       console.error('Error fixing dates:', error);
+      // Don't throw the error, just log it
     }
-  }, [sca?.id]); // Add sca?.id as dependency
+  }, [sca?.id]);
   
 
 // Milestone click handler
@@ -314,7 +287,6 @@ const handleMilestoneClick = useCallback((item: Schema["Milestone"]["type"]) => 
     if (!sca?.id) return;
     
     let subscription: ReturnType<typeof client.models.Milestone.observeQuery> | undefined;
-
     
     const initializeData = async () => {
       setIsLoading(true);
@@ -322,19 +294,35 @@ const handleMilestoneClick = useCallback((item: Schema["Milestone"]["type"]) => 
         // First fix the dates
         await fixExistingDates();
         
-        // Then set up the subscription
+        // Then set up the subscription with better error handling
         subscription = client.models.Milestone.observeQuery({
           filter: { scaId: { eq: sca.id } }
         }).subscribe({
           next: ({ items }) => {
-            // Ensure all dates are in ISO format before setting state
-            const processedItems = items.map(item => ({
-              ...item,
-              targeted_date: item.targeted_date ? convertToISODate(item.targeted_date) : null
-            }));
-            setMilestones(processedItems);
-            setFilteredItems(processedItems);
-            setIsLoading(false);
+            try {
+              // Process items even if some have invalid dates
+              const processedItems = items.map(item => {
+                try {
+                  return {
+                    ...item,
+                    targeted_date: item.targeted_date ? 
+                      (item.targeted_date.includes('T') ? 
+                        item.targeted_date : 
+                        new Date(item.targeted_date).toISOString()
+                      ) : null
+                  };
+                } catch (dateError) {
+                  console.warn('Error processing date for item:', item.id, dateError);
+                  return item; // Keep original item if date processing fails
+                }
+              });
+              setMilestones(processedItems);
+              setFilteredItems(processedItems);
+            } catch (processError) {
+              console.error('Error processing items:', processError);
+            } finally {
+              setIsLoading(false);
+            }
           },
           error: (error) => {
             console.error('Error in milestone subscription:', error);
@@ -346,9 +334,9 @@ const handleMilestoneClick = useCallback((item: Schema["Milestone"]["type"]) => 
         setIsLoading(false);
       }
     };
-
+  
     initializeData();
-
+  
     return () => {
       if (subscription) {
         subscription.unsubscribe();
