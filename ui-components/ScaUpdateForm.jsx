@@ -10,25 +10,44 @@ import { generateClient } from "aws-amplify/api";
 import { updateSca } from "./graphql/mutations";
 
 const client = generateClient();
+const styles = {
+  emptyField: {
+    backgroundColor: '#fff8e1',  // light yellow
+    borderColor: '#ffd54f'       // darker yellow for border
+  }
+};
 
 // Reusable form field component
-const FormInputField = ({ label, value, onChange, multiline = false, rows = 1 }) => (
-  <div style={{ display: 'flex', alignItems: 'flex-start', width: '100%', gap: '10px' }}>
-    <div style={{ width: '100px', marginRight: '10px', textAlign: 'right', flexShrink: 0 }}>
-      {label}:
+const FormInputField = ({ label, value, onChange, multiline = false, rows = 1, required = true }) => {
+  const isEmpty = !value;
+  const isOptionalEmpty = isEmpty && !required;
+  const isRequiredEmpty = isEmpty && required;
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-start', width: '100%', gap: '10px' }}>
+      <div style={{ width: '100px', marginRight: '10px', textAlign: 'right', flexShrink: 0 }}>
+        {label}{required && <span style={{ color: '#d32f2f' }}>*</span>}:
+      </div>
+      <div style={{ flex: '1 1 auto' }}>
+        <FormField 
+          stretch={true}
+          constraintText={isEmpty ? (required ? "This field is required" : "This field is missing") : ""}
+        >
+          <Input
+            value={value || ""}
+            onChange={({ detail }) => onChange(detail.value)}
+            multiline={multiline}
+            rows={rows}
+            invalid={isRequiredEmpty}
+            status={isOptionalEmpty ? "warning" : undefined}
+          />
+        </FormField>
+      </div>
     </div>
-    <div style={{ flex: '1 1 auto' }}>
-      <FormField stretch={true}>
-        <Input
-          value={value}
-          onChange={({ detail }) => onChange(detail.value)}
-          multiline={multiline}
-          rows={rows}
-        />
-      </FormField>
-    </div>
-  </div>
-);
+  );
+};
+
+
 
 // Form fields configuration
 const FORM_FIELDS = {
@@ -53,7 +72,7 @@ const FORM_FIELDS = {
     { name: 'contract_aws_contributions', label: 'AWS contributions', multiline: true, rows: 3 },
     { name: 'contract_partner_contributions', label: 'Partner contributions', multiline: true, rows: 3 },
     { name: 'contract_time_based_targets', label: 'Time based targets', multiline: true, rows: 3 },
-    { name: 'contract_comments', label: 'Comments', multiline: true, rows: 3 }
+    { name: 'contract_comments', label: 'Comments', multiline: true, rows: 3, required: false  }
   ]
 };
 
@@ -228,14 +247,17 @@ export default function ScaUpdateForm({ sca }) {
             <SpaceBetween direction="vertical" size="l">
               {/* Top row with two wide inputs */}
               <Grid gridDefinition={[{ colspan: 6 }, { colspan: 6 }]}>
-                {FORM_FIELDS.summary.topRow.map((field) => (
-                  <FormInputField
-                    key={field.name}
-                    label={field.label}
-                    value={formState[field.name]}
-                    onChange={(value) => updateField(field.name, value)}
-                  />
-                ))}
+              {FORM_FIELDS.summary.topRow.map((field) => (
+                <FormInputField
+                  key={field.name}
+                  label={field.label}
+                  value={formState[field.name]}
+                  onChange={(value) => updateField(field.name, value)}
+                  multiline={field.multiline}
+                  rows={field.rows}
+                  required={field.required !== false}  // This will make it required by default unless explicitly set to false
+                />
+              ))}
               </Grid>
   
               {/* Bottom row with four smaller inputs */}
@@ -287,6 +309,7 @@ export default function ScaUpdateForm({ sca }) {
                   onChange={(value) => updateField(field.name, value)}
                   multiline={field.multiline}
                   rows={field.rows}
+                  required={field.required !== false}
                 />
               ))}
             </SpaceBetween>
