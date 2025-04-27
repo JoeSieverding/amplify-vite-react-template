@@ -55,6 +55,30 @@ interface SelectOption {
   value: string;
 }
 
+// Update the formatDisplayDate function to use MM/DD/YY format
+const formatDisplayDate = (isoDate: string | null) => {
+    if (!isoDate) return '';
+    const date = new Date(isoDate);
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear().toString().slice(-2);
+    return `${month}/${day}/${year}`;
+  };
+
+  const isValidDate = (dateString: string): boolean => {
+    // Check if the date string matches MM/DD/YY format
+    const regex = /^(\d{2})\/(\d{2})\/(\d{2})$/;
+    if (!regex.test(dateString)) return false;
+  
+    const [month, day, year] = dateString.split('/').map(Number);
+    const fullYear = 2000 + year;
+    const date = new Date(fullYear, month - 1, day);
+  
+    return date.getDate() === day &&
+           date.getMonth() === month - 1 &&
+           date.getFullYear() === fullYear;
+  };  
+
 const inputTypeOptions: SelectOption[] = [
   { label: "Numeric", value: "numeric" },
   { label: "Text", value: "text" },
@@ -98,31 +122,33 @@ function MilestoneUpdateForm() {
     const errors: FormError = {};
     let isValid = true;
   
-    // Check milestone_type
-    if (!formData.milestone_type || formData.milestone_type.trim() === '') {
+    if (!formData.milestone_type) {
       errors.milestone_type = "Milestone type is required";
       isValid = false;
     }
   
-    // Check milestone_description
-    if (!formData.milestone_description || formData.milestone_description.trim() === '') {
+    if (!formData.milestone_description) {
       errors.milestone_description = "Milestone description is required";
       isValid = false;
     }
   
-    // Check milestone_goal
-    if (!formData.milestone_goal || formData.milestone_goal.trim() === '') {
+    if (!formData.milestone_goal) {
       errors.milestone_goal = "Milestone goal is required";
       isValid = false;
     }
   
-    // Check targeted_date
-    if (!formData.targeted_date) {
+    // Add the date validation here
+    if (formData.targeted_date) {
+      const displayDate = formatDisplayDate(formData.targeted_date);
+      if (!isValidDate(displayDate)) {
+        errors.targeted_date = "Invalid date format. Use MM/DD/YY";
+        isValid = false;
+      }
+    } else {
       errors.targeted_date = "Target date is required";
       isValid = false;
     }
   
-    // Check input_type
     if (!formData.input_type) {
       errors.input_type = "Input type is required";
       isValid = false;
@@ -161,6 +187,11 @@ const handleSubmit = async () => {
   
     setIsLoading(true);
     try {
+      // Convert the date to ISO format
+      const targetDate = formData.targeted_date 
+        ? new Date(formData.targeted_date).toISOString()
+        : null;
+  
       // Ensure all required string fields have values
       const updateData = {
         id: formData.id,
@@ -170,7 +201,7 @@ const handleSubmit = async () => {
         is_tech: formData.is_tech,
         is_currency: formData.is_currency,
         kpi_value: formData.kpi_value ?? '',
-        targeted_date: formData.targeted_date ?? '',
+        targeted_date: targetDate,  // Use the converted targetDate here instead of formData.targeted_date
         input_type: formData.input_type ?? '',
         milestone_goal: formData.milestone_goal ?? '',
         latest_actuals: formData.latest_actuals ?? '',
@@ -296,18 +327,33 @@ const handleSubmit = async () => {
                 />
                 </FormField>
 
-            <FormField
-                label="Target Date"
-                errorText={formErrors.targeted_date}
+                <FormField
+                    label="Target Date"
+                    errorText={formErrors.targeted_date}
                 >
                 <DatePicker
-                    value={formData.targeted_date || ''}
-                    onChange={({ detail }) =>
-                    setFormData(prev => ({ ...prev, targeted_date: detail.value || null }))
-                    }
+                    value={formData.targeted_date ? formatDisplayDate(formData.targeted_date) : ''}
+                    onChange={({ detail }) => {
+                        if (!detail.value) {
+                            setFormData(prev => ({ ...prev, targeted_date: null }));
+                            return;
+                        }
+                        
+                        // Convert the date string to ISO format for storage
+                        const [month, day, year] = detail.value.split('/');
+                        const fullYear = '20' + year; // Assuming all years are in the 2000s
+                        const date = new Date(`${fullYear}-${month}-${day}`);
+                        const isoDate = date.toISOString();
+                        
+                        setFormData(prev => ({ 
+                            ...prev, 
+                            targeted_date: isoDate 
+                        }));
+                    }}
+                    placeholder="MM/DD/YY"
                     openCalendarAriaLabel={selectedDate =>
-                    "Choose target date" +
-                    (selectedDate ? `, selected date is ${selectedDate}` : "")
+                        "Choose target date" +
+                        (selectedDate ? `, selected date is ${selectedDate}` : "")
                     }
                 />
                 </FormField>
