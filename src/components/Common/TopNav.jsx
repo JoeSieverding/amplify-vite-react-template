@@ -4,6 +4,7 @@ import TopNavigation from "@cloudscape-design/components/top-navigation";
 import { useAuthenticator } from '@aws-amplify/ui-react';
 import { getCurrentUser } from 'aws-amplify/auth';
 import logoIcon from './ccoe-phone-tool-icon.png';
+import { useNavigate } from 'react-router-dom';
 
 async function getUserDetails() {
   try {
@@ -20,7 +21,7 @@ async function getUserDetails() {
 
 function TopNav() {
   const { signOut } = useAuthenticator();
-
+  const navigate = useNavigate();
   const [userDetails, setUserDetails] = useState({
     username: "Loading...",
     email: "Loading..."
@@ -36,7 +37,11 @@ function TopNav() {
       return false; // Indicates failed confirmation
     }
   };
-
+  
+  const handleScaListClick = () => {
+    navigate('/scas'); // or whatever your route path is for the ScaList page
+  };
+  
   useEffect(() => {
     async function fetchUserDetails() {
       const user = await getUserDetails();
@@ -63,11 +68,15 @@ function TopNav() {
       }}
       utilities={[
         {
-            type: "button",
-            text: "Sign Out",
-            onClick: signOut,
-            onConfirm: handleSignOut
-          }, 
+          type: "button",
+          text: "Sca List",
+          onClick: handleScaListClick
+        },         {
+          type: "button",
+          text: "Sign Out",
+          onClick: signOut,
+          onConfirm: handleSignOut
+        }, 
         {
             type: "button",
             text: "PRFAQ",
@@ -75,14 +84,6 @@ function TopNav() {
             external: true,
             externalIconAriaLabel: " (opens in a new tab)"
           },
-        {
-          type: "button",
-          iconName: "notification",
-          title: "Notifications",
-          ariaLabel: "Notifications (unread)",
-          badge: true,
-          disableUtilityCollapse: false
-        },
         {
           type: "menu-dropdown",
           iconName: "settings",

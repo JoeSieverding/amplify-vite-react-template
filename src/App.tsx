@@ -1,4 +1,4 @@
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import {  Route, Routes } from "react-router-dom";
 
 import './App.css';
 import "@cloudscape-design/global-styles/index.css"
@@ -14,7 +14,7 @@ import MilestoneUpdateForm from './components/home/MilestoneUpdateForm';
 function App() {
 
   return (
-      <BrowserRouter>
+  
         <Routes>
           <Route path="*" element={<ScaList />} />
           <Route path="/homepage" element={<HomePage />} />
@@ -24,7 +24,7 @@ function App() {
           <Route path="/scamilestonelist" element={<ScaMilestoneList />} />
           <Route path="/milestoneupdateform" element={<MilestoneUpdateForm />} />
         </Routes>
-      </BrowserRouter>
+
       
   );
 }
