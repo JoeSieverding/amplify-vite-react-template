@@ -42,7 +42,7 @@ const formatDate = (dateString: string | null | undefined): string => {
     return `${month}/${day}/${year}`;
   } catch (error) {
     // If any error occurs during conversion, return original string
-    return dateString;
+    return '';
   }
 };
 
@@ -221,13 +221,19 @@ const handleMilestoneClick = useCallback((item: Schema["Milestone"]["type"]) => 
   // Subscription effect
   useEffect(() => {
     if (!sca?.id) return;
-
+  
     const subscription = client.models.Milestone.observeQuery({
       filter: { scaId: { eq: sca.id } }
     }).subscribe({
       next: ({ items }) => {
-        setMilestones(items);
-        setFilteredItems(items);
+        // Transform the items to ensure dates are in ISO format
+        const transformedItems = items.map(item => ({
+          ...item,
+          targeted_date: item.targeted_date ? new Date(item.targeted_date).toISOString() : null
+        }));
+        
+        setMilestones(transformedItems);
+        setFilteredItems(transformedItems);
         setIsLoading(false);
       },
       error: (error) => {
@@ -235,9 +241,10 @@ const handleMilestoneClick = useCallback((item: Schema["Milestone"]["type"]) => 
         setIsLoading(false);
       }
     });
-
+  
     return () => subscription.unsubscribe();
   }, [sca?.id]);
+  
 
   return (
     <>
