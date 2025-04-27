@@ -46,6 +46,48 @@ const formatDate = (dateString: string | null | undefined): string => {
   }
 };
 
+// After your existing formatDate function
+const convertToISODate = (dateString: string | null): string | null => {
+  if (!dateString) return null;
+  
+  try {
+    // Handle different date formats
+    let date: Date;
+    
+    // Check if it's already an ISO date
+    if (dateString.includes('T')) {
+      return dateString;
+    }
+    
+    // Handle "Month DD, YYYY" format (like "September 30, 2025")
+    if (dateString.match(/[A-Za-z]+/)) {
+      date = new Date(dateString);
+    } else {
+      // Handle other formats (MM/DD/YY or MM-DD-YY)
+      const parts = dateString.split(/[/-]/);
+      if (parts.length === 3) {
+        const month = parseInt(parts[0]) - 1;
+        const day = parseInt(parts[1]);
+        let year = parseInt(parts[2]);
+        if (year < 100) year += 2000;
+        date = new Date(year, month, day);
+      } else {
+        date = new Date(dateString);
+      }
+    }
+
+    if (isNaN(date.getTime())) {
+      console.error('Invalid date:', dateString);
+      return null;
+    }
+
+    return date.toISOString();
+  } catch (error) {
+    console.error('Error converting date:', error, 'for date string:', dateString);
+    return null;
+  }
+};
+
 const initialPreferences: Preferences = {
   pageSize: 10,
   contentDisplay: [
@@ -143,7 +185,56 @@ function ScaMilestoneList() {
     setFilteredItems(filtered);
   }, [milestones]);
 
-  // Milestone click handler
+  const fixExistingDates = useCallback(async () => {
+    try {
+      console.log('Starting date fix process...');
+      const result = await client.graphql({
+        query: `
+          query ListMilestones($filter: ModelMilestoneFilterInput) {
+            listMilestones(filter: $filter) {
+              items {
+                id
+                targeted_date
+              }
+            }
+          }
+        `,
+        variables: {
+          filter: { scaId: { eq: sca?.id } }
+        }
+      });
+  
+      if ('data' in result && result.data?.listMilestones?.items) {
+        const items = result.data.listMilestones.items;
+        console.log('Found items to process:', items.length);
+  
+        for (const item of items) {
+          if (item.targeted_date) {
+            console.log('Processing date:', item.targeted_date);
+            if (!item.targeted_date.includes('T')) {
+              const isoDate = convertToISODate(item.targeted_date);
+              if (isoDate) {
+                console.log('Converting date from', item.targeted_date, 'to', isoDate);
+                try {
+                  await client.models.Milestone.update({
+                    id: item.id,
+                    targeted_date: isoDate
+                  });
+                  console.log('Successfully updated item:', item.id);
+                } catch (updateError) {
+                  console.error('Error updating item:', item.id, updateError);
+                }
+              }
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error fixing dates:', error);
+    }
+  }, [sca?.id]); // Add sca?.id as dependency
+  
+
 // Milestone click handler
 const handleMilestoneClick = useCallback((item: Schema["Milestone"]["type"]) => {
   navigate('/milestoneupdateform', { 
@@ -221,30 +312,50 @@ const handleMilestoneClick = useCallback((item: Schema["Milestone"]["type"]) => 
   // Subscription effect
   useEffect(() => {
     if (!sca?.id) return;
-  
-    const subscription = client.models.Milestone.observeQuery({
-      filter: { scaId: { eq: sca.id } }
-    }).subscribe({
-      next: ({ items }) => {
-        // Transform the items to ensure dates are in ISO format
-        const transformedItems = items.map(item => ({
-          ...item,
-          targeted_date: item.targeted_date ? new Date(item.targeted_date).toISOString() : null
-        }));
+    
+    let subscription: ReturnType<typeof client.models.Milestone.observeQuery> | undefined;
+
+    
+    const initializeData = async () => {
+      setIsLoading(true);
+      try {
+        // First fix the dates
+        await fixExistingDates();
         
-        setMilestones(transformedItems);
-        setFilteredItems(transformedItems);
-        setIsLoading(false);
-      },
-      error: (error) => {
-        console.error('Error in milestone subscription:', error);
+        // Then set up the subscription
+        subscription = client.models.Milestone.observeQuery({
+          filter: { scaId: { eq: sca.id } }
+        }).subscribe({
+          next: ({ items }) => {
+            // Ensure all dates are in ISO format before setting state
+            const processedItems = items.map(item => ({
+              ...item,
+              targeted_date: item.targeted_date ? convertToISODate(item.targeted_date) : null
+            }));
+            setMilestones(processedItems);
+            setFilteredItems(processedItems);
+            setIsLoading(false);
+          },
+          error: (error) => {
+            console.error('Error in milestone subscription:', error);
+            setIsLoading(false);
+          }
+        });
+      } catch (error) {
+        console.error('Error initializing data:', error);
         setIsLoading(false);
       }
-    });
-  
-    return () => subscription.unsubscribe();
-  }, [sca?.id]);
-  
+    };
+
+    initializeData();
+
+    return () => {
+      if (subscription) {
+        subscription.unsubscribe();
+      }
+    };
+  }, [sca?.id, fixExistingDates]);
+
 
   return (
     <>
