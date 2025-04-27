@@ -144,11 +144,16 @@ function ScaMilestoneList() {
   }, [milestones]);
 
   // Milestone click handler
-  const handleMilestoneClick = useCallback((item: Schema["Milestone"]["type"]) => {
-    navigate('/scamilestonedetail', { 
-      state: { item: JSON.parse(JSON.stringify(item)) } 
-    });
-  }, [navigate]);
+// Milestone click handler
+const handleMilestoneClick = useCallback((item: Schema["Milestone"]["type"]) => {
+  navigate('/milestoneupdateform', { 
+    state: { 
+      item: JSON.parse(JSON.stringify(item)),
+      sca: sca  // Pass the sca data as well since it's needed in the form
+    } 
+  });
+}, [navigate, sca]);
+
 
   // Delete handling
   const handleDeleteMilestones = async () => {
