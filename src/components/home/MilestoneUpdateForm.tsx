@@ -411,7 +411,7 @@ function MilestoneUpdateForm() {
                       ragTypeOptions.find(option => option.value === formData.calc_rag_type) 
                       || null
                     }
-                    onChange={({ detail }) =>
+                    onChange={({ detail }) =>  
                       setFormData(prev => ({ 
                         ...prev, 
                         calc_rag_type: detail.selectedOption?.value || '' 
