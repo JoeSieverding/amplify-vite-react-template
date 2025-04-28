@@ -26,25 +26,17 @@ interface Preferences {
 const formatDate = (dateString: string | null | undefined): string => {
   if (!dateString) return '';
   
-  try {
-    const date = new Date(dateString);
-    
-    // Check if date is valid
-    if (isNaN(date.getTime())) {
-      return dateString;
-    }
-
-    // Format as MM/DD/YY
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const day = date.getDate().toString().padStart(2, '0');
-    const year = date.getFullYear().toString().slice(-2);
-    
-    return `${month}/${day}/${year}`;
-  } catch (error) {
-    // If any error occurs during conversion, return original string
-    return '';
+  // Check if the date is already in MM/DD/YY format
+  const mmddyyRegex = /^(0[1-9]|1[0-2])\/(0[1-9]|[12][0-9]|3[1])\/(19|20)?\d{2}$/;
+  if (mmddyyRegex.test(dateString)) {
+    // If it's already in correct format, return as is
+    return dateString;
   }
+
+  // If not in MM/DD/YY format, return the original string
+  return dateString;
 };
+
 
 const initialPreferences: Preferences = {
   pageSize: 10,
@@ -151,74 +143,6 @@ function ScaMilestoneList() {
     setFilteredItems(filtered);
   }, [milestones]);
 
-  const ensureISODate = (dateString: string | null | undefined): string | null => {
-    if (!dateString) return null;
-    
-    try {
-      const date = new Date(dateString);
-      if (!isNaN(date.getTime())) {
-        return date.toISOString();
-      }
-      return null;
-    } catch (error) {
-      console.error('Error converting date:', error);
-      return null;
-    }
-  };
-  
-  const fixExistingDates = useCallback(async () => {
-    try {
-      console.log('Starting date fix process...');
-      const result = await client.graphql({
-        query: `
-          query ListMilestones($filter: ModelMilestoneFilterInput) {
-            listMilestones(filter: $filter) {
-              items {
-                id
-                targeted_date
-              }
-            }
-          }
-        `,
-        variables: {
-          filter: { scaId: { eq: sca?.id } }
-        }
-      });
-  
-      if ('data' in result && result.data?.listMilestones?.items) {
-        const items = result.data.listMilestones.items;
-        console.log('Found items to process:', items.length);
-  
-        for (const item of items) {
-          try {
-            if (item.targeted_date) {
-              // Convert any date format to ISO string
-              const date = new Date(item.targeted_date);
-              if (!isNaN(date.getTime())) {
-                const isoDate = date.toISOString();
-                console.log('Converting date from', item.targeted_date, 'to', isoDate);
-                
-                await client.models.Milestone.update({
-                  id: item.id,
-                  targeted_date: isoDate
-                });
-                console.log('Successfully updated item:', item.id);
-              } else {
-                console.error('Invalid date format for item:', item.id, item.targeted_date);
-              }
-            }
-          } catch (itemError) {
-            console.error('Error processing individual item:', item.id, itemError);
-            continue;
-          }
-        }
-      }
-  
-    } catch (error) {
-      console.error('Error fixing dates:', error);
-    }
-  }, [sca?.id]);
-  
 // Milestone click handler
 const handleMilestoneClick = useCallback((item: Schema["Milestone"]["type"]) => {
   navigate('/milestoneupdateform', { 
@@ -307,33 +231,13 @@ useEffect(() => {
   const initializeData = async () => {
     setIsLoading(true);
     try {
-      // First fix the dates
-      await fixExistingDates();
-      
-      // Then set up the subscription with better error handling
       subscription = client.models.Milestone.observeQuery({
         filter: { scaId: { eq: sca.id } }
       }).subscribe({
         next: ({ items }) => {
-          try {
-            const processedItems = items.map(item => {
-              try {
-                return {
-                  ...item,
-                  targeted_date: ensureISODate(item.targeted_date)
-                };
-              } catch (dateError) {
-                console.warn('Error processing date for item:', item.id, dateError);
-                return item; // Keep original item if date processing fails
-              }
-            });
-            setMilestones(processedItems);
-            setFilteredItems(processedItems);
-          } catch (processError) {
-            console.error('Error processing items:', processError);
-          } finally {
-            setIsLoading(false);
-          }
+          setMilestones(items);
+          setFilteredItems(items);
+          setIsLoading(false);
         },
         error: (error) => {
           console.error('Error in milestone subscription:', error);
@@ -353,7 +257,8 @@ useEffect(() => {
       subscription.unsubscribe();
     }
   };
-}, [sca?.id, fixExistingDates]);
+}, [sca?.id]);
+
 
   return (
     <>

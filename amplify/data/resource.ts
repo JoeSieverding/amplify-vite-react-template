@@ -14,7 +14,7 @@ const schema = a.schema({
       is_tech: a.boolean(),
       is_currency: a.boolean(),
       kpi_value: a.string(),
-      targeted_date: a.datetime(),
+      targeted_date: a.string(),
       input_type: a.string(),
       milestone_goal: a.string(),
       latest_actuals: a.string(),
