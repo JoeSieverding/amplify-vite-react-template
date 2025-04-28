@@ -119,7 +119,40 @@ function ScaMilestoneList() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirmationText, setDeleteConfirmationText] = useState("");
   const [preferences, setPreferences] = useState<Preferences>(initialPreferences);
-
+  const sortMilestones = (milestones: Schema["Milestone"]["type"][]) => {
+    return [...milestones].sort((a, b) => {
+      // First sort by target date
+      if (a.targeted_date && b.targeted_date) {
+        if (a.targeted_date < b.targeted_date) return -1;
+        if (a.targeted_date > b.targeted_date) return 1;
+      } else if (a.targeted_date) {
+        return -1; // a has date, b doesn't
+      } else if (b.targeted_date) {
+        return 1;  // b has date, a doesn't
+      }
+  
+      // If dates are equal, sort by milestone type
+      if (a.milestone_type && b.milestone_type) {
+        const typeCompare = a.milestone_type.localeCompare(b.milestone_type);
+        if (typeCompare !== 0) return typeCompare;
+      } else if (a.milestone_type) {
+        return -1;
+      } else if (b.milestone_type) {
+        return 1;
+      }
+  
+      // If types are equal, sort by description
+      if (a.milestone_description && b.milestone_description) {
+        return a.milestone_description.localeCompare(b.milestone_description);
+      } else if (a.milestone_description) {
+        return -1;
+      } else if (b.milestone_description) {
+        return 1;
+      }
+  
+      return 0;
+    });
+  };
   // Navigation check
   useEffect(() => {
     if (!location.state?.sca) {
@@ -133,15 +166,15 @@ function ScaMilestoneList() {
     setFilteredItems(milestones || []);
   }, [location.state, navigate]);
 
-  // Filtering logic
-  const handleFiltering = useCallback((text: string = '') => {
-    setFilteringText(text);
-    const filtered = text ? milestones.filter(item => 
-      (item.milestone_type?.toLowerCase() || '').includes(text.toLowerCase()) ||
-      (item.milestone_description?.toLowerCase() || '').includes(text.toLowerCase())
-    ) : milestones;
-    setFilteredItems(filtered);
-  }, [milestones]);
+// Update your filtering logic to maintain sort order
+const handleFiltering = useCallback((text: string = '') => {
+  setFilteringText(text);
+  const filtered = text ? milestones.filter(item => 
+    (item.milestone_type?.toLowerCase() || '').includes(text.toLowerCase()) ||
+    (item.milestone_description?.toLowerCase() || '').includes(text.toLowerCase())
+  ) : milestones;
+  setFilteredItems(sortMilestones(filtered));  // Apply sorting to filtered results
+}, [milestones]);
 
 // Milestone click handler
 const handleMilestoneClick = useCallback((item: Schema["Milestone"]["type"]) => {
@@ -235,8 +268,9 @@ useEffect(() => {
         filter: { scaId: { eq: sca.id } }
       }).subscribe({
         next: ({ items }) => {
-          setMilestones(items);
-          setFilteredItems(items);
+          const sortedItems = sortMilestones(items);
+          setMilestones(sortedItems);
+          setFilteredItems(sortedItems);
           setIsLoading(false);
         },
         error: (error) => {
@@ -258,7 +292,6 @@ useEffect(() => {
     }
   };
 }, [sca?.id]);
-
 
   return (
     <>

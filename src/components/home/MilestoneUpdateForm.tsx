@@ -17,7 +17,6 @@ import {
 
 const client = generateClient<Schema>();
 
-// Add these interfaces at the top
 interface LocationState {
   item: Schema["Milestone"]["type"];
   sca: Schema["Sca"]["type"];
@@ -180,7 +179,7 @@ function MilestoneUpdateForm() {
         is_tech: formData.is_tech,
         is_currency: formData.is_currency,
         kpi_value: formData.kpi_value ?? '',
-        targeted_date: formData.targeted_date,  // Use the date string directly
+        targeted_date: formData.targeted_date,
         input_type: formData.input_type ?? '',
         milestone_goal: formData.milestone_goal ?? '',
         latest_actuals: formData.latest_actuals ?? '',
@@ -204,14 +203,6 @@ function MilestoneUpdateForm() {
 
   return (
     <Form
-      header={
-        <Header
-          variant="h1"
-          description={sca ? `Update milestone information for ${sca.partner} - ${sca.contract_name}` : ''}
-        >
-          Update Milestone
-        </Header>
-      }
       actions={
         <SpaceBetween direction="horizontal" size="xs">
           <Button onClick={handleReset}>Reset</Button>
@@ -226,192 +217,223 @@ function MilestoneUpdateForm() {
     >
       <Container>
         <SpaceBetween direction="vertical" size="l">
-          <FormField
-            label="Milestone Type"
-            errorText={formErrors.milestone_type}
+          <Header
+            variant="h1"
+            description={sca ? `Update milestone information for ${sca.partner} - ${sca.contract_name}` : ''}
           >
-            <Input
-              value={formData.milestone_type || ''}
-              onChange={({ detail }) =>
-                setFormData(prev => ({ ...prev, milestone_type: detail.value || null }))
-              }
-            />
-          </FormField>
+            Update Milestone
+          </Header>
 
-          <FormField
-            label="Description"
-            errorText={formErrors.milestone_description}
+          {/* Milestone Summary Section */}
+          <Container
+            header={
+              <Header variant="h2">Milestone Summary</Header>
+            }
           >
-            <Input
-              value={formData.milestone_description || ''}
-              onChange={({ detail }) =>
-                setFormData(prev => ({ ...prev, milestone_description: detail.value || null }))
-              }
-            />
-          </FormField>
+            <SpaceBetween direction="vertical" size="l">
+              {/* First Row */}
+              <SpaceBetween direction="horizontal" size="l">
+                <FormField
+                  label="Description"
+                  errorText={formErrors.milestone_description}
+                  stretch={true}
+                >
+                  <Input
+                    value={formData.milestone_description || ''}
+                    onChange={({ detail }) =>
+                      setFormData(prev => ({ ...prev, milestone_description: detail.value || null }))
+                    }
+                  />
+                </FormField>
 
-          <FormField
-            label="Input Type"
-            errorText={formErrors.input_type}
-          >
-            <Select
-              selectedOption={
-                inputTypeOptions.find(option => option.value === formData.input_type) 
-                || null
-              }
-              onChange={({ detail }) =>
-                setFormData(prev => ({ 
-                  ...prev, 
-                  input_type: detail.selectedOption?.value || '' 
-                }))
-              }
-              options={inputTypeOptions}
-            />
-          </FormField>
+                <FormField
+                  label="Milestone Type"
+                  errorText={formErrors.milestone_type}
+                >
+                  <Input
+                    value={formData.milestone_type || ''}
+                    onChange={({ detail }) =>
+                      setFormData(prev => ({ ...prev, milestone_type: detail.value || null }))
+                    }
+                  />
+                </FormField>
+              </SpaceBetween>
 
-          <FormField
-            label="KPI Value"
-            errorText={formErrors.kpi_value}
-          >
-            <Input
-              value={formData.kpi_value || ''}
-              onChange={({ detail }) =>
-                setFormData(prev => ({ ...prev, kpi_value: detail.value || null }))
-              }
-            />
-          </FormField>
-
-          <FormField
-            label="Goal"
-            errorText={formErrors.milestone_goal}
-          >
-            <Input
-              value={formData.milestone_goal || ''}
-              onChange={({ detail }) =>
-                setFormData(prev => ({ ...prev, milestone_goal: detail.value || null }))
-              }
-            />
-          </FormField>
-
-          <FormField
-            label="Latest Actuals"
-          >
-            <Input
-              value={formData.latest_actuals || ''}
-              onChange={({ detail }) =>
-                setFormData(prev => ({ ...prev, latest_actuals: detail.value || null }))
-              }
-            />
-          </FormField>
-
-          // Replace the DatePicker FormField with this Input FormField:
-          <FormField
-            label="Target Date"
-            errorText={formErrors.targeted_date}
-          >
-            <Input
-              value={formData.targeted_date || ''}
-              placeholder="MM/DD/YY"
-              onChange={({ detail }) => {
-                const newValue = detail.value;
-                
-                // If field is cleared, allow it
-                if (!newValue) {
-                  setFormData(prev => ({ ...prev, targeted_date: null }));
-                  setFormErrors(prev => ({ ...prev, targeted_date: undefined }));
-                  return;
-                }
-
-                // If the field hasn't been modified, keep the existing value
-                if (newValue === formData.targeted_date) {
-                  return;
-                }
-
-                // Try to convert to MM/DD/YY format if it's a new value
-                try {
-                  const date = new Date(newValue);
-                  if (!isNaN(date.getTime())) {
-                    // Valid date - format as MM/DD/YY
-                    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-                    const day = date.getDate().toString().padStart(2, '0');
-                    const year = (date.getFullYear() % 100).toString().padStart(2, '0');
-                    const formattedDate = `${month}/${day}/${year}`;
-                    
-                    setFormData(prev => ({ ...prev, targeted_date: formattedDate }));
-                    setFormErrors(prev => ({ ...prev, targeted_date: undefined }));
-                  } else {
-                    // Invalid date
-                    setFormData(prev => ({ ...prev, targeted_date: newValue }));
-                    setFormErrors(prev => ({ 
-                      ...prev, 
-                      targeted_date: "Please enter a valid date in MM/DD/YY format" 
-                    }));
+              {/* Second Row */}
+              <FormField
+                label="Goal"
+                errorText={formErrors.milestone_goal}
+              >
+                <Input
+                  value={formData.milestone_goal || ''}
+                  onChange={({ detail }) =>
+                    setFormData(prev => ({ ...prev, milestone_goal: detail.value || null }))
                   }
-                } catch (error) {
-                  // If date parsing fails
-                  setFormData(prev => ({ ...prev, targeted_date: newValue }));
-                  setFormErrors(prev => ({ 
-                    ...prev, 
-                    targeted_date: "Please enter a valid date in MM/DD/YY format" 
-                  }));
-                }
-              }}
-            />
-          </FormField>
+                />
+              </FormField>
 
+              {/* Third Row */}
+              <SpaceBetween direction="horizontal" size="l">
+                <FormField
+                  label="Input Type"
+                  errorText={formErrors.input_type}
+                >
+                  <Select
+                    selectedOption={
+                      inputTypeOptions.find(option => option.value === formData.input_type) 
+                      || null
+                    }
+                    onChange={({ detail }) =>
+                      setFormData(prev => ({ 
+                        ...prev, 
+                        input_type: detail.selectedOption?.value || '' 
+                      }))
+                    }
+                    options={inputTypeOptions}
+                  />
+                </FormField>
 
-          <FormField
-            label="RAG Status"
+                <FormField
+                  label="KPI Value"
+                  errorText={formErrors.kpi_value}
+                >
+                  <Input
+                    value={formData.kpi_value || ''}
+                    onChange={({ detail }) =>
+                      setFormData(prev => ({ ...prev, kpi_value: detail.value || null }))
+                    }
+                  />
+                </FormField>
+
+                <FormField label="Tech Milestone">
+                  <Checkbox
+                    checked={formData.is_tech}
+                    onChange={({ detail }) =>
+                      setFormData(prev => ({ ...prev, is_tech: detail.checked }))
+                    }
+                  >
+                    <TextContent>Technical Milestone</TextContent>
+                  </Checkbox>
+                </FormField>
+
+                <FormField label="Currency">
+                  <Checkbox
+                    checked={formData.is_currency}
+                    onChange={({ detail }) =>
+                      setFormData(prev => ({ ...prev, is_currency: detail.checked }))
+                    }
+                  >
+                    <TextContent>Currency Milestone</TextContent>
+                  </Checkbox>
+                </FormField>
+              </SpaceBetween>
+            </SpaceBetween>
+          </Container>
+
+          {/* Milestone Performance Section */}
+          <Container
+            header={
+              <Header variant="h2">Milestone Performance</Header>
+            }
           >
-            <Select
-              selectedOption={
-                ragTypeOptions.find(option => option.value === formData.calc_rag_type) 
-                || null
-              }
-              onChange={({ detail }) =>
-                setFormData(prev => ({ 
-                  ...prev, 
-                  calc_rag_type: detail.selectedOption?.value || '' 
-                }))
-              }
-              options={ragTypeOptions}
-            />
-          </FormField>
+            <SpaceBetween direction="vertical" size="l">
+              <SpaceBetween direction="horizontal" size="l">
+                <FormField
+                  label="Target Date"
+                  errorText={formErrors.targeted_date}
+                >
+                  <Input
+                    value={formData.targeted_date || ''}
+                    placeholder="MM/DD/YY"
+                    onChange={({ detail }) => {
+                      const newValue = detail.value;
+                      
+                      // If field is cleared, allow it
+                      if (!newValue) {
+                        setFormData(prev => ({ ...prev, targeted_date: null }));
+                        setFormErrors(prev => ({ ...prev, targeted_date: undefined }));
+                        return;
+                      }
 
-          <SpaceBetween direction="horizontal" size="xl">
-            <FormField label="Technical Milestone">
-              <Checkbox
-                checked={formData.is_tech}
-                onChange={({ detail }) =>
-                  setFormData(prev => ({ ...prev, is_tech: detail.checked }))
-                }
-              >
-                <TextContent>Is this a technical milestone?</TextContent>
-              </Checkbox>
-            </FormField>
+                      // If the field hasn't been modified, keep the existing value
+                      if (newValue === formData.targeted_date) {
+                        return;
+                      }
 
-            <FormField label="Currency">
-              <Checkbox
-                checked={formData.is_currency}
-                onChange={({ detail }) =>
-                  setFormData(prev => ({ ...prev, is_currency: detail.checked }))
-                }
-              >
-                <TextContent>Is this a currency milestone?</TextContent>
-              </Checkbox>
-            </FormField>
+                      // Try to convert to MM/DD/YY format if it's a new value
+                      try {
+                        const date = new Date(newValue);
+                        if (!isNaN(date.getTime())) {
+                          // Valid date - format as MM/DD/YY
+                          const month = (date.getMonth() + 1).toString().padStart(2, '0');
+                          const day = date.getDate().toString().padStart(2, '0');
+                          const year = (date.getFullYear() % 100).toString().padStart(2, '0');
+                          const formattedDate = `${month}/${day}/${year}`;
+                          
+                          setFormData(prev => ({ ...prev, targeted_date: formattedDate }));
+                          setFormErrors(prev => ({ ...prev, targeted_date: undefined }));
+                        } else {
+                          // Invalid date
+                          setFormData(prev => ({ ...prev, targeted_date: newValue }));
+                          setFormErrors(prev => ({ 
+                            ...prev, 
+                            targeted_date: "Please enter a valid date in MM/DD/YY format" 
+                          }));
+                        }
+                      } catch (error) {
+                        // If date parsing fails
+                        setFormData(prev => ({ ...prev, targeted_date: newValue }));
+                        setFormErrors(prev => ({ 
+                          ...prev, 
+                          targeted_date: "Please enter a valid date in MM/DD/YY format" 
+                        }));
+                      }
+                    }}
+                  />
+                </FormField>
 
-            <FormField label="RAG Override">
-              <Checkbox
-                checked={formData.is_rag_override}
-                onChange={({ detail }) =>
-                  setFormData(prev => ({ ...prev, is_rag_override: detail.checked }))
-                }
-              >
-                <TextContent>Override RAG status?</TextContent>
-              </Checkbox>
-            </FormField>
-          </SpaceBetween>
+                <FormField
+                  label="Latest Actuals"
+                >
+                  <Input
+                    value={formData.latest_actuals || ''}
+                    onChange={({ detail }) =>
+                      setFormData(prev => ({ ...prev, latest_actuals: detail.value || null }))
+                    }
+                  />
+                </FormField>
+
+                <FormField
+                  label="RAG Status"
+                >
+                  <Select
+                    selectedOption={
+                      ragTypeOptions.find(option => option.value === formData.calc_rag_type) 
+                      || null
+                    }
+                    onChange={({ detail }) =>
+                      setFormData(prev => ({ 
+                        ...prev, 
+                        calc_rag_type: detail.selectedOption?.value || '' 
+                      }))
+                    }
+                    options={ragTypeOptions}
+                  />
+                </FormField>
+
+                <FormField label="RAG Override">
+                  <Checkbox
+                    checked={formData.is_rag_override}
+                    onChange={({ detail }) =>
+                      setFormData(prev => ({ ...prev, is_rag_override: detail.checked }))
+                    }
+                  >
+                    <TextContent>Override RAG Status</TextContent>
+                  </Checkbox>
+                </FormField>
+              </SpaceBetween>
+            </SpaceBetween>
+          </Container>
         </SpaceBetween>
       </Container>
     </Form>
