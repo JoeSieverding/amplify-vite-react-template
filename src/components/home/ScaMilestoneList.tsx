@@ -46,7 +46,6 @@ const formatDate = (dateString: string | null | undefined): string => {
   }
 };
 
-
 const initialPreferences: Preferences = {
   pageSize: 10,
   contentDisplay: [
@@ -107,6 +106,14 @@ const DeleteConfirmationModal = ({
     </Modal>
 );
 
+const styles = {
+  milestoneColumn: {
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis'
+  }
+} as const; // Using 'as const' to make it readonly
+
 function ScaMilestoneList() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -144,6 +151,21 @@ function ScaMilestoneList() {
     setFilteredItems(filtered);
   }, [milestones]);
 
+  const ensureISODate = (dateString: string | null | undefined): string | null => {
+    if (!dateString) return null;
+    
+    try {
+      const date = new Date(dateString);
+      if (!isNaN(date.getTime())) {
+        return date.toISOString();
+      }
+      return null;
+    } catch (error) {
+      console.error('Error converting date:', error);
+      return null;
+    }
+  };
+  
   const fixExistingDates = useCallback(async () => {
     try {
       console.log('Starting date fix process...');
@@ -163,7 +185,6 @@ function ScaMilestoneList() {
         }
       });
   
-      // Even if there are errors, we can still process the data
       if ('data' in result && result.data?.listMilestones?.items) {
         const items = result.data.listMilestones.items;
         console.log('Found items to process:', items.length);
@@ -171,43 +192,33 @@ function ScaMilestoneList() {
         for (const item of items) {
           try {
             if (item.targeted_date) {
-              // Handle "Month DD, YYYY" format
-              if (typeof item.targeted_date === 'string' && item.targeted_date.match(/[A-Za-z]+/)) {
-                const date = new Date(item.targeted_date);
-                if (!isNaN(date.getTime())) {
-                  const isoDate = date.toISOString();
-                  console.log('Converting date from', item.targeted_date, 'to', isoDate);
-                  
-                  await client.models.Milestone.update({
-                    id: item.id,
-                    targeted_date: isoDate
-                  });
-                  console.log('Successfully updated item:', item.id);
-                } else {
-                  console.error('Invalid date format for item:', item.id, item.targeted_date);
-                }
+              // Convert any date format to ISO string
+              const date = new Date(item.targeted_date);
+              if (!isNaN(date.getTime())) {
+                const isoDate = date.toISOString();
+                console.log('Converting date from', item.targeted_date, 'to', isoDate);
+                
+                await client.models.Milestone.update({
+                  id: item.id,
+                  targeted_date: isoDate
+                });
+                console.log('Successfully updated item:', item.id);
+              } else {
+                console.error('Invalid date format for item:', item.id, item.targeted_date);
               }
             }
           } catch (itemError) {
             console.error('Error processing individual item:', item.id, itemError);
-            // Continue with next item even if this one fails
             continue;
           }
         }
       }
   
-      // If there were errors in the GraphQL response, log them but don't throw
-      if ('errors' in result && result.errors) {
-        console.warn('GraphQL errors encountered:', result.errors);
-      }
-  
     } catch (error) {
       console.error('Error fixing dates:', error);
-      // Don't throw the error, just log it
     }
   }, [sca?.id]);
   
-
 // Milestone click handler
 const handleMilestoneClick = useCallback((item: Schema["Milestone"]["type"]) => {
   navigate('/milestoneupdateform', { 
@@ -256,11 +267,16 @@ const handleMilestoneClick = useCallback((item: Schema["Milestone"]["type"]) => 
       id: "milestone_description",
       header: "Milestone",
       cell: (item: Schema["Milestone"]["type"]) => (
-        <Button variant="link" onClick={() => handleMilestoneClick(item)}>
-          {item.milestone_description}
-        </Button>
+        <div 
+          style={styles.milestoneColumn} 
+          title={item.milestone_description || ''}
+        >
+          <Button variant="link" onClick={() => handleMilestoneClick(item)}>
+            {item.milestone_description}
+          </Button>
+        </div>
       ),
-      width: 250 // Make description column wider
+      width: 250
     },
     {
       id: "is_tech",
@@ -282,68 +298,62 @@ const handleMilestoneClick = useCallback((item: Schema["Milestone"]["type"]) => 
     }
   ], [handleMilestoneClick]);
 
-  // Subscription effect
-  useEffect(() => {
-    if (!sca?.id) return;
-    
-    let subscription: ReturnType<typeof client.models.Milestone.observeQuery> | undefined;
-    
-    const initializeData = async () => {
-      setIsLoading(true);
-      try {
-        // First fix the dates
-        await fixExistingDates();
-        
-        // Then set up the subscription with better error handling
-        subscription = client.models.Milestone.observeQuery({
-          filter: { scaId: { eq: sca.id } }
-        }).subscribe({
-          next: ({ items }) => {
-            try {
-              // Process items even if some have invalid dates
-              const processedItems = items.map(item => {
-                try {
-                  return {
-                    ...item,
-                    targeted_date: item.targeted_date ? 
-                      (item.targeted_date.includes('T') ? 
-                        item.targeted_date : 
-                        new Date(item.targeted_date).toISOString()
-                      ) : null
-                  };
-                } catch (dateError) {
-                  console.warn('Error processing date for item:', item.id, dateError);
-                  return item; // Keep original item if date processing fails
-                }
-              });
-              setMilestones(processedItems);
-              setFilteredItems(processedItems);
-            } catch (processError) {
-              console.error('Error processing items:', processError);
-            } finally {
-              setIsLoading(false);
-            }
-          },
-          error: (error) => {
-            console.error('Error in milestone subscription:', error);
+// Subscription effect
+useEffect(() => {
+  if (!sca?.id) return;
+  
+  let subscription: ReturnType<typeof client.models.Milestone.observeQuery> | undefined;
+  
+  const initializeData = async () => {
+    setIsLoading(true);
+    try {
+      // First fix the dates
+      await fixExistingDates();
+      
+      // Then set up the subscription with better error handling
+      subscription = client.models.Milestone.observeQuery({
+        filter: { scaId: { eq: sca.id } }
+      }).subscribe({
+        next: ({ items }) => {
+          try {
+            const processedItems = items.map(item => {
+              try {
+                return {
+                  ...item,
+                  targeted_date: ensureISODate(item.targeted_date)
+                };
+              } catch (dateError) {
+                console.warn('Error processing date for item:', item.id, dateError);
+                return item; // Keep original item if date processing fails
+              }
+            });
+            setMilestones(processedItems);
+            setFilteredItems(processedItems);
+          } catch (processError) {
+            console.error('Error processing items:', processError);
+          } finally {
             setIsLoading(false);
           }
-        });
-      } catch (error) {
-        console.error('Error initializing data:', error);
-        setIsLoading(false);
-      }
-    };
-  
-    initializeData();
-  
-    return () => {
-      if (subscription) {
-        subscription.unsubscribe();
-      }
-    };
-  }, [sca?.id, fixExistingDates]);
+        },
+        error: (error) => {
+          console.error('Error in milestone subscription:', error);
+          setIsLoading(false);
+        }
+      });
+    } catch (error) {
+      console.error('Error initializing data:', error);
+      setIsLoading(false);
+    }
+  };
 
+  initializeData();
+
+  return () => {
+    if (subscription) {
+      subscription.unsubscribe();
+    }
+  };
+}, [sca?.id, fixExistingDates]);
 
   return (
     <>

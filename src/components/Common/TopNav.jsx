@@ -69,7 +69,7 @@ function TopNav() {
       utilities={[
         {
           type: "button",
-          text: "Sca List",
+          text: "SCA List",
           onClick: handleScaListClick
         },         {
           type: "button",
