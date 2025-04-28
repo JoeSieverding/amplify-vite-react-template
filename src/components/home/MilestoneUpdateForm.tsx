@@ -10,7 +10,6 @@ import {
   Container,
   FormField,
   Input,
-  DatePicker,
   Checkbox,
   TextContent,
   Select
@@ -305,33 +304,61 @@ function MilestoneUpdateForm() {
             />
           </FormField>
 
+          // Replace the DatePicker FormField with this Input FormField:
           <FormField
             label="Target Date"
             errorText={formErrors.targeted_date}
           >
-            <DatePicker
+            <Input
               value={formData.targeted_date || ''}
+              placeholder="MM/DD/YY"
               onChange={({ detail }) => {
-                if (!detail.value) {
+                const newValue = detail.value;
+                
+                // If field is cleared, allow it
+                if (!newValue) {
                   setFormData(prev => ({ ...prev, targeted_date: null }));
+                  setFormErrors(prev => ({ ...prev, targeted_date: undefined }));
                   return;
                 }
-                
-                // Only update if it's a valid date format
-                if (isValidDate(detail.value)) {
-                  setFormData(prev => ({ 
+
+                // If the field hasn't been modified, keep the existing value
+                if (newValue === formData.targeted_date) {
+                  return;
+                }
+
+                // Try to convert to MM/DD/YY format if it's a new value
+                try {
+                  const date = new Date(newValue);
+                  if (!isNaN(date.getTime())) {
+                    // Valid date - format as MM/DD/YY
+                    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+                    const day = date.getDate().toString().padStart(2, '0');
+                    const year = (date.getFullYear() % 100).toString().padStart(2, '0');
+                    const formattedDate = `${month}/${day}/${year}`;
+                    
+                    setFormData(prev => ({ ...prev, targeted_date: formattedDate }));
+                    setFormErrors(prev => ({ ...prev, targeted_date: undefined }));
+                  } else {
+                    // Invalid date
+                    setFormData(prev => ({ ...prev, targeted_date: newValue }));
+                    setFormErrors(prev => ({ 
+                      ...prev, 
+                      targeted_date: "Please enter a valid date in MM/DD/YY format" 
+                    }));
+                  }
+                } catch (error) {
+                  // If date parsing fails
+                  setFormData(prev => ({ ...prev, targeted_date: newValue }));
+                  setFormErrors(prev => ({ 
                     ...prev, 
-                    targeted_date: detail.value 
+                    targeted_date: "Please enter a valid date in MM/DD/YY format" 
                   }));
                 }
               }}
-              placeholder="MM/DD/YY"
-              openCalendarAriaLabel={selectedDate =>
-                "Choose target date" +
-                (selectedDate ? `, selected date is ${selectedDate}` : "")
-              }
             />
           </FormField>
+
 
           <FormField
             label="RAG Status"
