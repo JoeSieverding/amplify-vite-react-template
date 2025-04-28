@@ -10,6 +10,7 @@ import ScaDetail from "./components/home/ScaDetail";
 import AddSca from "./components/home/AddSca";
 import ScaMilestoneList from "./components/home/ScaMilestoneList";
 import MilestoneUpdateForm from './components/home/MilestoneUpdateForm';
+import ScaImportChatBot from './components/home/ScaImportChatBot';
 
 function App() {
 
@@ -23,6 +24,7 @@ function App() {
           <Route path="/addsca" element={<AddSca />} />
           <Route path="/scamilestonelist" element={<ScaMilestoneList />} />
           <Route path="/milestoneupdateform" element={<MilestoneUpdateForm />} />
+          <Route path="/scaimportchatbot" element={<ScaImportChatBot />} />
         </Routes>
 
       

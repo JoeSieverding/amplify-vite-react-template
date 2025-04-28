@@ -8,7 +8,10 @@
     "outDir": "./built",
     // added below to allow JS calls from TSX
     "allowJs": true,
-    
+    "typeRoots": [
+      "./node_modules/@types",
+      "./src/types"
+    ],
 
     /* Bundler mode */
     "moduleResolution": "bundler",
