@@ -8,6 +8,7 @@ import TopNav from "./components/Common/TopNav";
 import "@cloudscape-design/global-styles/index.css"
 import { ThemeProvider } from '@aws-amplify/ui-react';
 import { BrowserRouter } from "react-router-dom";
+import './utils/pdfWorker';
 
 Amplify.configure(outputs);
 
