@@ -22,7 +22,7 @@ function ScaImportChatBot(): JSX.Element {
 
   // Initialize PDF.js worker
   useEffect(() => {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
+    pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.js';
   }, []);
   
 
