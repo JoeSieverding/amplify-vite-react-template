@@ -34,6 +34,7 @@ function ScaList() {
   const [isLoading, setIsLoading] = useState(true);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirmationText, setDeleteConfirmationText] = useState('');
+  const [currentPageIndex, setCurrentPageIndex] = useState(1);
   const [preferences, setPreferences] = useState<Preferences>({
     pageSize: 10,
     contentDisplay: [
@@ -45,6 +46,16 @@ function ScaList() {
   });
   
   const navigate = useNavigate();
+
+  const getTotalPages = () => {
+    return Math.ceil((filteredItems?.length || 0) / preferences.pageSize);
+  };
+
+  const getCurrentPageItems = () => {
+    const startIndex = (currentPageIndex - 1) * preferences.pageSize;
+    const endIndex = startIndex + preferences.pageSize;
+    return filteredItems.slice(startIndex, endIndex);
+  };
 
   const handleScaClick = (item: Schema["Sca"]["type"]) => {
     const cleanItem = JSON.parse(JSON.stringify(item));
@@ -69,16 +80,14 @@ function ScaList() {
   
   const handleConfirmDelete = async () => {
     if (deleteConfirmationText.toLowerCase() !== 'delete') {
-      return; // Don't proceed if the text doesn't match
+      return;
     }
   
     try {
-      // Delete each selected SCA
       for (const item of selectedItems) {
         await client.models.Sca.delete(item);
       }
       
-      // Clear selection and close modal after successful deletion
       setSelectedItems([]);
       setShowDeleteModal(false);
       setDeleteConfirmationText('');
@@ -91,7 +100,6 @@ function ScaList() {
   useEffect(() => {
     const subscription = client.models.Sca.observeQuery().subscribe({
       next: ({ items }: { items: Schema["Sca"]["type"][] }) => {
-        // Serialize the items when receiving them
         const newItems = serializeData([...items]);
         setScas(newItems);
         setFilteredItems(newItems);
@@ -106,6 +114,7 @@ function ScaList() {
     if (text === undefined) {
       setFilteringText('');
       setFilteredItems(scas);
+      setCurrentPageIndex(1);
       return;
     }
     
@@ -120,151 +129,184 @@ function ScaList() {
     );
     
     setFilteredItems(filtered);
+    setCurrentPageIndex(1);
   };
 
   const handlePreferencesChange: CollectionPreferencesProps['onConfirm'] = ({ detail }) => {
     setPreferences({
       pageSize: detail.pageSize || 10,
-      contentDisplay: [...(detail.contentDisplay || [])] // Spread operator to create a mutable copy
+      contentDisplay: [...(detail.contentDisplay || [])]
     });
+    setCurrentPageIndex(1);
   };
 
   return (
     <>
-    <Table
-      items={filteredItems || []}
-      loading={isLoading}
-      renderAriaLive={({ firstIndex, lastIndex, totalItemsCount }) => `Displaying items ${firstIndex} to ${lastIndex} of ${totalItemsCount}`}
-      onSelectionChange={({ detail }) => setSelectedItems(detail.selectedItems)}
-      selectedItems={selectedItems}
-      ariaLabels={{
-        selectionGroupLabel: "Items selection",
-        allItemsSelectionLabel: () => "select all",
-      }}
-      columnDefinitions={[
-        {
-          id: "partner",
-          header: "Partner",
-          cell: item => item.partner,
-          sortingField: "partner",
-          isRowHeader: true
-        },
-        {
-          id: "contract_name",
-          header: "SCA",
-          cell: item => (
-            <Link onFollow={() => handleScaClick(item)}>
-              {item.contract_name}
-            </Link>
-          ),
-          sortingField: "contract_name"
-        },
-        {
-          id: "contract_type",
-          header: "Type",
-          cell: item => item.contract_type
-        },
-        {
-          id: "contract_description",
-          header: "Description",
-          cell: item => item.contract_description
+      <Table
+        items={getCurrentPageItems()}
+        loading={isLoading}
+        renderAriaLive={({ firstIndex, lastIndex, totalItemsCount }) => 
+          `Displaying items ${firstIndex} to ${lastIndex} of ${totalItemsCount}`
         }
-      ]}
-      columnDisplay={preferences.contentDisplay}
-      enableKeyboardNavigation
-      loadingText="Loading resources"
-      selectionType="multi"
-      trackBy="id"
-      empty={<Box margin={{ vertical: "xs" }} textAlign="center" color="inherit">
-        <SpaceBetween size="m">
-          <b>No resources</b>
-          <Button>Create resource</Button>
-        </SpaceBetween>
-      </Box>}
-      filter={<TextFilter
-        filteringPlaceholder="Find SCA"
-        filteringText={filteringText || ''}
-        onChange={({ detail }) => handleFiltering(detail.filteringText)}
-        countText={filteredItems ? `${filteredItems.length} matches` : "0 matches"}
-        disabled={false} />}
-      header={<Header counter={selectedItems.length ? `(${selectedItems.length}/10)` : "(10)"}>
-        SCA List<span>     </span>
-        <ButtonDropdown
-          items={[
-            { text: "List SCAs", id: "rm", disabled: false },
-            {
-              id: "add",
-              text: "Add SCA",
-              disabled: false,
-              href: "/addsca"
-            },
-            {
-              text: "Delete Selected",
-              id: "delete",
-              disabled: selectedItems.length === 0
-            },
-            {
-              id: "view",
-              text: "View metrics",
-              href: "https://example.com",
-              external: true,
-              externalIconAriaLabel: "(opens in new tab)"
-            }
-          ]}
-          onItemClick={handleActionClick}
-        >
-          Actions
-        </ButtonDropdown>
-      </Header>}
-      pagination={<Pagination currentPageIndex={1} pagesCount={2} />}
-      preferences={<CollectionPreferences
-        title="Preferences"
-        confirmLabel="Confirm"
-        cancelLabel="Cancel"
-        onConfirm={handlePreferencesChange}
-        preferences={preferences}
-        pageSizePreference={{
-          title: "Page size",
-          options: [
-            { value: 10, label: "10 resources" },
-            { value: 20, label: "20 resources" }
-          ]
+        onSelectionChange={({ detail }) => setSelectedItems(detail.selectedItems)}
+        selectedItems={selectedItems}
+        ariaLabels={{
+          selectionGroupLabel: "Items selection",
+          allItemsSelectionLabel: () => "select all",
         }}
-        wrapLinesPreference={{}}
-        stripedRowsPreference={{}}
-        contentDensityPreference={{}}
-        contentDisplayPreference={{
-          options: [
-            { id: "variable", label: "Variable name", alwaysVisible: true },
-            { id: "value", label: "Text value" },
-            { id: "type", label: "Type" },
-            { id: "description", label: "Description" }
-          ]
-        }}
-        stickyColumnsPreference={{
-          firstColumns: {
-            title: "Stick first column(s)",
-            description: "Keep the first column(s) visible while horizontally scrolling the table content.",
-            options: [
-              { label: "None", value: 0 },
-              { label: "First column", value: 1 },
-              { label: "First two columns", value: 2 }
-            ]
+        columnDefinitions={[
+          {
+            id: "partner",
+            header: "Partner",
+            cell: item => item.partner,
+            sortingField: "partner",
+            isRowHeader: true
           },
-          lastColumns: {
-            title: "Stick last column",
-            description: "Keep the last column visible while horizontally scrolling the table content.",
-            options: [
-              { label: "None", value: 0 },
-              { label: "Last column", value: 1 }
-            ]
+          {
+            id: "contract_name",
+            header: "SCA",
+            cell: item => (
+              <Link onFollow={() => handleScaClick(item)}>
+                {item.contract_name}
+              </Link>
+            ),
+            sortingField: "contract_name"
+          },
+          {
+            id: "contract_type",
+            header: "Type",
+            cell: item => item.contract_type
+          },
+          {
+            id: "contract_description",
+            header: "Description",
+            cell: item => item.contract_description
           }
-        }} />} /><Modal
-          visible={showDeleteModal}
-          onDismiss={() => setShowDeleteModal(false)}
-          header="Confirm Deletion"
-          closeAriaLabel="Close dialog"
-          footer={<Box float="right">
+        ]}
+        columnDisplay={preferences.contentDisplay}
+        enableKeyboardNavigation
+        loadingText="Loading resources"
+        selectionType="multi"
+        trackBy="id"
+        empty={
+          <Box margin={{ vertical: "xs" }} textAlign="center" color="inherit">
+            <SpaceBetween size="m">
+              <b>No resources</b>
+              <Button>Create resource</Button>
+            </SpaceBetween>
+          </Box>
+        }
+        filter={
+          <TextFilter
+            filteringPlaceholder="Find SCA"
+            filteringText={filteringText || ''}
+            onChange={({ detail }) => handleFiltering(detail.filteringText)}
+            countText={filteredItems ? `${filteredItems.length} matches` : "0 matches"}
+            disabled={false}
+          />
+        }
+        header={
+          <Header counter={selectedItems.length ? `(${selectedItems.length}/${filteredItems.length})` : `(${filteredItems.length})`}>
+            SCA List<span>     </span>
+            <ButtonDropdown
+              items={[
+                { text: "List SCAs", id: "rm", disabled: false },
+                {
+                  id: "add",
+                  text: "Add SCA",
+                  disabled: false,
+                  href: "/addsca"
+                },
+                {
+                  text: "Delete Selected",
+                  id: "delete",
+                  disabled: selectedItems.length === 0
+                },
+                {
+                  id: "view",
+                  text: "View metrics",
+                  href: "https://example.com",
+                  external: true,
+                  externalIconAriaLabel: "(opens in new tab)"
+                }
+              ]}
+              onItemClick={handleActionClick}
+            >
+              Actions
+            </ButtonDropdown>
+          </Header>
+        }
+        pagination={
+          <Pagination
+            currentPageIndex={currentPageIndex}
+            pagesCount={getTotalPages()}
+            ariaLabels={{
+              nextPageLabel: 'Next page',
+              previousPageLabel: 'Previous page',
+              pageLabel: pageNumber => `Page ${pageNumber} of ${getTotalPages()}`,
+              paginationLabel: 'Pagination'
+            }}
+            onChange={({ detail }) => {
+              setCurrentPageIndex(detail.currentPageIndex);
+            }}
+            disabled={isLoading}
+          />
+        }
+        preferences={
+          <CollectionPreferences
+            title="Preferences"
+            confirmLabel="Confirm"
+            cancelLabel="Cancel"
+            onConfirm={handlePreferencesChange}
+            preferences={preferences}
+            pageSizePreference={{
+              title: "Page size",
+              options: [
+                { value: 10, label: "10 resources" },
+                { value: 20, label: "20 resources" },
+                { value: 50, label: "50 resources" }
+              ]
+            }}
+            wrapLinesPreference={{}}
+            stripedRowsPreference={{}}
+            contentDensityPreference={{}}
+            contentDisplayPreference={{
+              options: [
+                { id: "partner", label: "Partner", alwaysVisible: true },
+                { id: "contract_name", label: "SCA" },
+                { id: "contract_type", label: "Type" },
+                { id: "contract_description", label: "Description" }
+              ]
+            }}
+            stickyColumnsPreference={{
+              firstColumns: {
+                title: "Stick first column(s)",
+                description: "Keep the first column(s) visible while horizontally scrolling the table content.",
+                options: [
+                  { label: "None", value: 0 },
+                  { label: "First column", value: 1 },
+                  { label: "First two columns", value: 2 }
+                ]
+              },
+              lastColumns: {
+                title: "Stick last column",
+                description: "Keep the last column visible while horizontally scrolling the table content.",
+                options: [
+                  { label: "None", value: 0 },
+                  { label: "Last column", value: 1 }
+                ]
+              }
+            }}
+          />
+        }
+      />
+      <Modal
+        visible={showDeleteModal}
+        onDismiss={() => setShowDeleteModal(false)}
+        header="Confirm Deletion"
+        closeAriaLabel="Close dialog"
+        footer={
+          <Box float="right">
             <SpaceBetween direction="horizontal" size="xs">
               <Button variant="link" onClick={() => setShowDeleteModal(false)}>
                 Cancel
@@ -277,8 +319,9 @@ function ScaList() {
                 Delete
               </Button>
             </SpaceBetween>
-          </Box>}
-        >
+          </Box>
+        }
+      >
         <SpaceBetween size="m">
           <Box>
             Are you sure you want to delete {selectedItems.length} selected item(s)?
@@ -287,14 +330,12 @@ function ScaList() {
           <Input
             value={deleteConfirmationText}
             onChange={({ detail }) => setDeleteConfirmationText(detail.value)}
-            placeholder="Type 'delete' to confirm" />
+            placeholder="Type 'delete' to confirm"
+          />
         </SpaceBetween>
-      </Modal></>
+      </Modal>
+    </>
   );
 }
 
 export default ScaList;
-
-//function setFlashMessages(arg0: { type: string; content: any; dismissible: boolean; }[]) {
-//  throw new Error("Function not implemented.");
-//}
