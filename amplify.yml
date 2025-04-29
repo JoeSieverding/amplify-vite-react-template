@@ -3,6 +3,8 @@ backend:
   phases:
     preBuild:
       commands:
+        - nvm install 20.17.0
+        - nvm use 20.17.0
         - npm install -g npm@latest
     build:
       commands:
