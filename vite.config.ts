@@ -7,11 +7,12 @@ type WarningHandler = NonNullable<RollupOptions['onwarn']>
 export default defineConfig({
   plugins: [react()],
   resolve: {
-    alias: {
-      './runtimeConfig': './runtimeConfig.browser',
-      '@aws-amplify/ui-react': '@aws-amplify/ui-react/dist/esm/index.js',
-      '@cloudscape-design/components': '@cloudscape-design/components/index.js'
-    }
+    alias: [
+      {
+        find: './runtimeConfig',
+        replacement: './runtimeConfig.browser'
+      }
+    ]
   },
   build: {
     sourcemap: true,
@@ -72,7 +73,6 @@ export default defineConfig({
       }
     },
     include: [
-      '@aws-amplify/ui-react',
       'aws-amplify',
       '@cloudscape-design/components',
       '@cloudscape-design/global-styles',
