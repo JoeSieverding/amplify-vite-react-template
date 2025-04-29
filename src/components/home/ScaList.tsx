@@ -90,7 +90,7 @@ function ScaList() {
   
   useEffect(() => {
     const subscription = client.models.Sca.observeQuery().subscribe({
-      next: ({ items }) => {
+      next: ({ items }: { items: Schema["Sca"]["type"][] }) => {
         // Serialize the items when receiving them
         const newItems = serializeData([...items]);
         setScas(newItems);

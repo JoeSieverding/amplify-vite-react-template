@@ -267,13 +267,16 @@ useEffect(() => {
       subscription = client.models.Milestone.observeQuery({
         filter: { scaId: { eq: sca.id } }
       }).subscribe({
-        next: ({ items }) => {
+        next: ({ items, isSynced }: { 
+          items: Schema["Milestone"]["type"][], 
+          isSynced: boolean 
+        }) => {
           const sortedItems = sortMilestones(items);
           setMilestones(sortedItems);
           setFilteredItems(sortedItems);
-          setIsLoading(false);
+          setIsLoading(!isSynced);
         },
-        error: (error) => {
+        error: (error: Error) => {
           console.error('Error in milestone subscription:', error);
           setIsLoading(false);
         }
@@ -292,6 +295,7 @@ useEffect(() => {
     }
   };
 }, [sca?.id]);
+
 
   return (
     <>

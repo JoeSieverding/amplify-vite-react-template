@@ -15,10 +15,15 @@ export default defineConfig({
       transformMixedEsModules: true
     },
     rollupOptions: {
-      external: ['aws-amplify'],
+      external: [
+        'aws-amplify',
+        '@aws-amplify/core/internals/utils',
+        /^@aws-amplify\/.*/  // This will catch all @aws-amplify packages
+      ],
       output: {
         globals: {
-          'aws-amplify': 'aws-amplify'
+          'aws-amplify': 'aws-amplify',
+          '@aws-amplify/core/internals/utils': 'aws_amplify_core_internals_utils'
         }
       }
     }
