@@ -1,16 +1,40 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  optimizeDeps: {
-    exclude: ['pdfjs-dist']
+  resolve: {
+    alias: {
+      './runtimeConfig': './runtimeConfig.browser'
+    }
   },
   build: {
     sourcemap: true,
     commonjsOptions: {
-      include: [/pdfjs-dist/]
+      include: [/node_modules/],
+      transformMixedEsModules: true
+    },
+    rollupOptions: {
+      external: ['aws-amplify'],
+      output: {
+        globals: {
+          'aws-amplify': 'aws-amplify'
+        }
+      }
     }
+  },
+  optimizeDeps: {
+    esbuildOptions: {
+      define: {
+        global: 'globalThis'
+      }
+    },
+    include: [
+      '@aws-amplify/ui-react',
+      'aws-amplify'
+    ]
+  },
+  define: {
+    global: 'globalThis'
   }
 })

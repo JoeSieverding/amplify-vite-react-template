@@ -22,8 +22,9 @@ function ScaImportChatBot(): JSX.Element {
 
   // Initialize PDF.js worker
   useEffect(() => {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+    pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
   }, []);
+  
 
   const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB limit
 
