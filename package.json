@@ -5,10 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build && shx cp node_modules/pdfjs-dist/legacy/build/pdf.worker.min.js dist/",
+    "build": "tsc && vite build && shx cp node_modules/pdfjs-dist/build/pdf.worker.js dist/",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
-    "prepare-pdf-worker": "shx mkdir -p public && shx cp node_modules/pdfjs-dist/legacy/build/pdf.worker.min.js public/",
+    "prepare-pdf-worker": "shx mkdir -p public && shx cp node_modules/pdfjs-dist/build/pdf.worker.js public/",
     "postinstall": "npm run prepare-pdf-worker || exit 0"
   },
   "dependencies": {
@@ -19,7 +19,7 @@
     "aws-amplify": "^6.0.0",
     "json-schema-to-ts": "^3.1.1",
     "mammoth": "^1.6.0",
-    "pdfjs-dist": "^4.0.379",
+    "pdfjs-dist": "3.11.174",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.22.0",
