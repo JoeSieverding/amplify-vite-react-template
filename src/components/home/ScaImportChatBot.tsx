@@ -1,3 +1,11 @@
+// React imports
+import { useState } from 'react';
+
+// AWS imports
+import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
+import { fetchAuthSession } from 'aws-amplify/auth';
+
+// Cloudscape Design System imports
 import Container from '@cloudscape-design/components/container';
 import SpaceBetween from '@cloudscape-design/components/space-between';
 import Input, { InputProps } from '@cloudscape-design/components/input';
@@ -6,12 +14,18 @@ import Header from '@cloudscape-design/components/header';
 import Textarea from '@cloudscape-design/components/textarea';
 import FormField from '@cloudscape-design/components/form-field';
 import Alert from '@cloudscape-design/components/alert';
-import { useState, useEffect } from 'react';
-import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
-import { fetchAuthSession } from 'aws-amplify/auth';
+
+// PDF.js imports
 import * as pdfjsLib from 'pdfjs-dist';
 import { TextItem, TextMarkedContent } from 'pdfjs-dist/types/src/display/api';
+
+// Document processing imports
 import mammoth from 'mammoth';
+
+// Initialize PDF.js worker
+if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = `${window.location.origin}/pdf.worker.js`;
+}
 
 function ScaImportChatBot(): JSX.Element {
   const [userInput, setUserInput] = useState<string>('');
@@ -19,12 +33,6 @@ function ScaImportChatBot(): JSX.Element {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [error, setError] = useState<string>('');
-
-  // Initialize PDF.js worker
-  useEffect(() => {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.js';
-  }, []);
-  
 
   const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB limit
 

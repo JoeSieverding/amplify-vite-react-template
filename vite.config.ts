@@ -55,15 +55,6 @@ export default defineConfig({
         }
         handler(warning);
       }) as WarningHandler
-    },
-    terserOptions: {
-      mangle: {
-        reserved: ['FileReader', 'Uint8Array']
-      },
-      compress: {
-        drop_console: false,
-        unsafe_Function: true
-      }
     }
   },
   optimizeDeps: {
@@ -76,9 +67,9 @@ export default defineConfig({
       'aws-amplify',
       '@cloudscape-design/components',
       '@cloudscape-design/global-styles',
-      'react-router-dom'
-    ],
-    exclude: ['pdfjs-dist']
+      'react-router-dom',
+      'pdfjs-dist'  // Add this line
+    ]
   },
   define: {
     global: 'globalThis',
