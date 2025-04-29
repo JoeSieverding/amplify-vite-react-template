@@ -12,7 +12,8 @@ export default defineConfig({
     sourcemap: true,
     commonjsOptions: {
       include: [/node_modules/],
-      transformMixedEsModules: true
+      transformMixedEsModules: true,
+      requireReturnsDefault: 'namespace' // Add this for pdf.js
     },
     rollupOptions: {
       external: [
@@ -24,6 +25,9 @@ export default defineConfig({
         globals: {
           'aws-amplify': 'aws-amplify',
           '@aws-amplify/core/internals/utils': 'aws_amplify_core_internals_utils'
+        },
+        manualChunks: {
+          pdfjs: ['pdfjs-dist'] // Add this for pdf.js
         }
       }
     }
@@ -37,7 +41,8 @@ export default defineConfig({
     include: [
       '@aws-amplify/ui-react',
       'aws-amplify'
-    ]
+    ],
+    exclude: ['pdfjs-dist'] // Add this for pdf.js
   },
   define: {
     global: 'globalThis'
