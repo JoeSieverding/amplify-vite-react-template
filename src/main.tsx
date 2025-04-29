@@ -1,6 +1,6 @@
 import { createRoot } from "react-dom/client";  // Changed this line
 import { Authenticator } from '@aws-amplify/ui-react';
-import App from "./App.tsx";
+import App from "./App";
 import { Amplify } from "aws-amplify";
 import outputs from "../amplify_outputs.json";
 import '@aws-amplify/ui-react/styles.css';

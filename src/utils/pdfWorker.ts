@@ -1,5 +1,6 @@
-import { GlobalWorkerOptions } from 'pdfjs-dist';
+import * as pdfjsLib from 'pdfjs-dist';
 
 // Set worker path before any PDF.js usage
-GlobalWorkerOptions.workerSrc = '/pdf.worker.js';
+pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.js';
+
 
