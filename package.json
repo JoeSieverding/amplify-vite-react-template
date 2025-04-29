@@ -8,7 +8,7 @@
     "build": "tsc && vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
-    "postinstall": "if not exist public mkdir public && copy /Y node_modules\\pdfjs-dist\\build\\pdf.worker.min.js public\\"
+    "postinstall": "shx mkdir -p public && shx cp node_modules/pdfjs-dist/build/pdf.worker.min.js public/"
   },
   "dependencies": {
     "@aws-amplify/ui-react": "^6.0.0",
@@ -45,6 +45,7 @@
     "eslint": "^8.57.0",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.6",
+    "shx": "^0.4.0",
     "tsx": "^4.7.2",
     "typescript": "^5.4.5",
     "vite": "^5.0.0"
