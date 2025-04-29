@@ -68,7 +68,7 @@ export default defineConfig({
       '@cloudscape-design/components',
       '@cloudscape-design/global-styles',
       'react-router-dom',
-      'pdfjs-dist'  // Add this line
+      'pdfjs-dist'
     ]
   },
   define: {
