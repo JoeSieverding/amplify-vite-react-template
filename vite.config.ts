@@ -22,23 +22,7 @@ export default defineConfig({
       requireReturnsDefault: 'namespace'
     },
     rollupOptions: {
-      external: [
-        'aws-amplify',
-        '@aws-amplify/core/internals/utils',
-        /^@aws-amplify\/.*/,
-        'react',
-        'react-dom',
-        'react-router-dom'
-      ],
       output: {
-        globals: {
-          'aws-amplify': 'aws-amplify',
-          '@aws-amplify/core/internals/utils': 'aws_amplify_core_internals_utils',
-          '@aws-amplify/ui-react': '@aws_amplify/ui-react',
-          'react': 'React',
-          'react-dom': 'ReactDOM',
-          'react-router-dom': 'ReactRouterDOM'
-        },
         manualChunks: {
           pdfjs: ['pdfjs-dist'],
           cloudscape: ['@cloudscape-design/components', '@cloudscape-design/global-styles']
@@ -64,10 +48,12 @@ export default defineConfig({
       }
     },
     include: [
+      'react',
+      'react-dom',
+      'react-router-dom',
       'aws-amplify',
       '@cloudscape-design/components',
       '@cloudscape-design/global-styles',
-      'react-router-dom',
       'pdfjs-dist'
     ]
   },
