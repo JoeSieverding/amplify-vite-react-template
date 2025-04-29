@@ -35,6 +35,7 @@ root.render(
             email: 'Only @amazon.com email addresses are allowed'
           };
         }
+        return undefined; // or return {} if you want to indicate validation passed
       }
     }}
   >
