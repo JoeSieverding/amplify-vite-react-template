@@ -5,10 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "tsc && vite build && shx cp node_modules/pdfjs-dist/build/pdf.worker.min.js dist/",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
-    "postinstall": "shx mkdir -p public && shx cp node_modules/pdfjs-dist/build/pdf.worker.min.js public/"
+    "prepare-pdf-worker": "shx mkdir -p public && shx cp node_modules/pdfjs-dist/build/pdf.worker.min.js public/",
+    "postinstall": "npm run prepare-pdf-worker || exit 0"
   },
   "dependencies": {
     "@aws-amplify/ui-react": "^6.0.0",
