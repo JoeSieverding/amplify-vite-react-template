@@ -1,4 +1,4 @@
-import { createRoot } from "react-dom/client";  // Changed this line
+import { createRoot } from "react-dom/client";
 import { Authenticator } from '@aws-amplify/ui-react';
 import App from "./App";
 import { Amplify } from "aws-amplify";
@@ -15,7 +15,7 @@ Amplify.configure(outputs);
 const container = document.getElementById("root");
 if (!container) throw new Error('Failed to find the root element');
 const root = createRoot(container);
-
+document.title = "SCA Suite";
 root.render(
   <Authenticator
     signUpAttributes={['email']}

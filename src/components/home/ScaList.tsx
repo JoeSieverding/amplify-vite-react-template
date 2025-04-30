@@ -15,6 +15,8 @@ import ButtonDropdown from "@cloudscape-design/components/button-dropdown";
 import Modal from "@cloudscape-design/components/modal";
 import Input from "@cloudscape-design/components/input";
 import { serializeData } from '../../utils/dataSerializer';
+import { NonCancelableEventHandler } from "@cloudscape-design/components/internal/events";
+import { TableProps } from "@cloudscape-design/components/table";
 
 const client = generateClient<Schema>();
 
@@ -26,15 +28,25 @@ interface Preferences {
   }>;
 }
 
+type SortableFields = "partner" | "contract_name" | "contract_type" | "contract_description";
+
+interface SortingColumn {
+  sortingField: SortableFields;
+}
+
+type ScaType = Schema["Sca"]["type"];
+
 function ScaList() {
-  const [scas, setScas] = useState<Array<Schema["Sca"]["type"]>>([]);
-  const [selectedItems, setSelectedItems] = useState<Array<Schema["Sca"]["type"]>>([]);
+  const [scas, setScas] = useState<ScaType[]>([]);
+  const [selectedItems, setSelectedItems] = useState<ScaType[]>([]);
   const [filteringText, setFilteringText] = useState<string>('');
-  const [filteredItems, setFilteredItems] = useState<Array<Schema["Sca"]["type"]>>([]);
+  const [filteredItems, setFilteredItems] = useState<ScaType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirmationText, setDeleteConfirmationText] = useState('');
   const [currentPageIndex, setCurrentPageIndex] = useState(1);
+  const [sortingColumn, setSortingColumn] = useState<SortingColumn>({ sortingField: "partner" });
+  const [sortingDescending, setSortingDescending] = useState(false);
   const [preferences, setPreferences] = useState<Preferences>({
     pageSize: 10,
     contentDisplay: [
@@ -57,7 +69,7 @@ function ScaList() {
     return filteredItems.slice(startIndex, endIndex);
   };
 
-  const handleScaClick = (item: Schema["Sca"]["type"]) => {
+  const handleScaClick = (item: ScaType) => {
     const cleanItem = JSON.parse(JSON.stringify(item));
     navigate('/scadetail', { state: { item: cleanItem } });
   };
@@ -67,7 +79,6 @@ function ScaList() {
       case 'delete':
         handleDeleteScas();
         break;
-      // Add other cases as needed
     }
   };
 
@@ -96,19 +107,54 @@ function ScaList() {
       console.error('Error deleting SCAs:', error);
     }
   };
+
+  const handleSorting: NonCancelableEventHandler<TableProps.SortingState<ScaType>> = ({ detail }) => {
+    setSortingColumn(detail.sortingColumn as SortingColumn);
+    setSortingDescending(detail.isDescending ?? false); // Add null coalescing operator
+    
+    const sortedItems = [...filteredItems].sort((a, b) => {
+      const field = detail.sortingColumn.sortingField as SortableFields;
+      const aValue = String(a[field] || '').toLowerCase();
+      const bValue = String(b[field] || '').toLowerCase();
+      
+      if (detail.isDescending) {
+        return bValue.localeCompare(aValue);
+      }
+      return aValue.localeCompare(bValue);
+    });
+    
+    setFilteredItems(sortedItems);
+  };
   
   useEffect(() => {
     const subscription = client.models.Sca.observeQuery().subscribe({
-      next: ({ items }: { items: Schema["Sca"]["type"][] }) => {
+      next: ({ items }: { items: ScaType[] }) => {
         const newItems = serializeData([...items]);
-        setScas(newItems);
-        setFilteredItems(newItems);
+        // Sort items by partner and then by contract_name (SCA)
+        const sortedItems = [...newItems].sort((a, b) => {
+          // First compare partners
+          const aPartner = String(a.partner || '').toLowerCase();
+          const bPartner = String(b.partner || '').toLowerCase();
+          const partnerComparison = aPartner.localeCompare(bPartner);
+          
+          // If partners are the same, compare contract names
+          if (partnerComparison === 0) {
+            const aContract = String(a.contract_name || '').toLowerCase();
+            const bContract = String(b.contract_name || '').toLowerCase();
+            return aContract.localeCompare(bContract);
+          }
+          
+          return partnerComparison;
+        });
+        setScas(sortedItems);
+        setFilteredItems(sortedItems);
         setIsLoading(false);
       }
     });
-
+  
     return () => subscription.unsubscribe();
   }, []);
+  
 
   const handleFiltering = (text: string) => {
     if (text === undefined) {
@@ -154,12 +200,15 @@ function ScaList() {
           selectionGroupLabel: "Items selection",
           allItemsSelectionLabel: () => "select all",
         }}
+        sortingColumn={sortingColumn}
+        sortingDescending={sortingDescending}
+        onSortingChange={handleSorting}
         columnDefinitions={[
           {
             id: "partner",
             header: "Partner",
             cell: item => item.partner,
-            sortingField: "partner",
+            sortingField: "partner" as SortableFields,
             isRowHeader: true
           },
           {
@@ -170,17 +219,19 @@ function ScaList() {
                 {item.contract_name}
               </Link>
             ),
-            sortingField: "contract_name"
+            sortingField: "contract_name" as SortableFields
           },
           {
             id: "contract_type",
             header: "Type",
-            cell: item => item.contract_type
+            cell: item => item.contract_type,
+            sortingField: "contract_type" as SortableFields
           },
           {
             id: "contract_description",
             header: "Description",
-            cell: item => item.contract_description
+            cell: item => item.contract_description,
+            sortingField: "contract_description" as SortableFields
           }
         ]}
         columnDisplay={preferences.contentDisplay}
