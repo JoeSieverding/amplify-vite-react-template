@@ -171,7 +171,7 @@ function ScaImportChatBot(): JSX.Element {
             key="header"
             variant="h1"
           >
-            SCA Import Bot
+            Import SCA Bot
           </Header>,
           
           error && (
@@ -196,40 +196,50 @@ function ScaImportChatBot(): JSX.Element {
               <FormField 
                 key="file-input"
                 label="Upload File (optional)"
+                stretch={true}
               >
-                <input
-                  type="file"
-                  onChange={handleFileChange}
-                  accept=".txt,.csv,.json,.yaml,.xml,.md,.pdf,.doc,.docx"
-                  disabled={isLoading}
-                />
+                <div style={{ width: '100%' }}>
+                  <input
+                    type="file"
+                    onChange={handleFileChange}
+                    accept=".txt,.csv,.json,.yaml,.xml,.md,.pdf,.doc,.docx"
+                    disabled={isLoading}
+                    style={{ width: '100%' }}
+                  />
+                </div>
               </FormField>,
               
-              <SpaceBetween 
-                key="message-input"
-                size="xs" 
-                direction="horizontal" 
-                alignItems="center"
-              >
-                {[
-                  <Input
-                    key="text-input"
-                    value={userInput}
-                    onChange={({ detail }) => setUserInput(detail.value)}
-                    placeholder="Type your message here..."
-                    onKeyDown={handleKeyDown}
-                    disabled={isLoading}
-                  />,
-                  <Button 
-                    key="send-button"
-                    variant="primary"
-                    onClick={handleSendMessage}
-                    loading={isLoading}
-                  >
-                    Send
-                  </Button>
-                ]}
-              </SpaceBetween>
+              <div style={{ display: 'flex', width: '100%' }}>
+                <SpaceBetween 
+                  key="message-input"
+                  size="xs" 
+                  direction="horizontal" 
+                  alignItems="center"
+                >
+                  {
+                    <div style={{ display: 'flex', width: '100%', gap: '1rem' }}>
+                      <div style={{ flex: '1 1 auto' }}>
+                        <Input
+                          key="text-input"
+                          value={userInput}
+                          onChange={({ detail }) => setUserInput(detail.value)}
+                          placeholder="Type your message here..."
+                          onKeyDown={handleKeyDown}
+                          disabled={isLoading}
+                        />
+                      </div>
+                      <Button 
+                        key="send-button"
+                        variant="primary"
+                        onClick={handleSendMessage}
+                        loading={isLoading}
+                      >
+                        Send
+                      </Button>
+                    </div>
+                  }
+                </SpaceBetween>
+              </div>
             ]}
           </SpaceBetween>
         ].filter(Boolean)}
