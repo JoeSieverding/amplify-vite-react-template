@@ -26,3 +26,15 @@ frontend:
     paths:
       - .npm/**/*
       - node_modules/**/*
+  customHeaders:
+    - pattern: '**/*'
+      headers:
+        - key: 'Cache-Control'
+          value: 'no-cache'
+  redirects:
+    - source: '/scaimportchatbot/'
+      target: '/scaimportchatbot'
+      status: '301'
+    - source: '/<*>'
+      target: '/index.html'
+      status: '200'

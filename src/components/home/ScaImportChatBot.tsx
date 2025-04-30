@@ -128,7 +128,7 @@ function ScaImportChatBot(): JSX.Element {
       setChatHistory(updatedHistory);
 
       const command = new InvokeModelCommand({
-        modelId: 'arn:aws:bedrock:us-west-2:702267260580:prompt/HLSG47NSQS',
+        modelId: 'arn:aws:bedrock:us-west-2:702267260580:prompt/HLSG47NSQS:1',
         body: JSON.stringify({
           prompt: `\n\nHuman: Using the prompt template from arn:aws:bedrock:us-west-2:702267260580:prompt/HLSG47NSQS, process the following input: ${messageContent}\n\nAssistant:`
         }),
