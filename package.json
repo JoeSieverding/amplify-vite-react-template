@@ -15,6 +15,7 @@
     "@aws-amplify/ui-react": "^6.11.1",
     "@aws-sdk/client-bedrock": "^3.799.0",
     "@aws-sdk/client-bedrock-runtime": "^3.799.0",
+    "@aws-sdk/client-lambda": "^3.799.0",
     "@cloudscape-design/components": "^3.0.947",
     "@cloudscape-design/global-styles": "^1.0.41",
     "aws-amplify": "^6.0.0",

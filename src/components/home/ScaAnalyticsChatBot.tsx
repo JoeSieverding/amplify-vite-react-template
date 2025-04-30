@@ -184,7 +184,7 @@ function ScaAnalyticsChatBot(): JSX.Element {
       <SpaceBetween size="l" direction="vertical">
         {[
           <Header 
-            key="header"
+            key="analytics-header"
             variant="h1"
           >
             SCA Analytics Bot
@@ -192,7 +192,7 @@ function ScaAnalyticsChatBot(): JSX.Element {
           
           error && (
             <Alert 
-              key="error"
+              key="analytics-error"
               type="error"
             >
               {error}
@@ -200,68 +200,66 @@ function ScaAnalyticsChatBot(): JSX.Element {
           ),
           
           <Textarea
-            key="chat-history"
+            key="analytics-chat-history"
             value={chatHistory}
             rows={15}
             readOnly
             placeholder="Chat history will appear here..."
           />,
           
-          <SpaceBetween key="input-section" size="xs" direction="vertical">
-            {[
-              <FormField 
-                key="file-input"
-                label="Upload File (optional)"
-                stretch={true}
-              >
-                <div style={{ width: '100%' }}>
-                  <input
-                    type="file"
-                    onChange={handleFileChange}
-                    accept=".txt,.csv,.json,.yaml,.xml,.md,.pdf,.doc,.docx"
-                    disabled={isLoading}
-                    style={{ width: '100%' }}
-                  />
-                </div>
-              </FormField>,
-              
-              <div style={{ display: 'flex', width: '100%' }}>
-                <SpaceBetween 
-                  key="message-input"
-                  size="xs" 
-                  direction="horizontal" 
-                  alignItems="center"
+          <div key="analytics-input-section">
+            <SpaceBetween size="xs" direction="vertical">
+              {[
+                <FormField 
+                  key="analytics-file-input"
+                  label="Upload File (optional)"
+                  stretch={true}
                 >
-                  {
-                    <div style={{ display: 'flex', width: '100%', gap: '1rem' }}>
-                      <div style={{ flex: '1 1 auto' }}>
-                        <Input
-                          key="text-input"
-                          value={userInput}
-                          onChange={({ detail }) => setUserInput(detail.value)}
-                          placeholder="Type your message here..."
-                          onKeyDown={handleKeyDown}
-                          disabled={isLoading}
-                        />
-                      </div>
-                      <Button 
-                        key="send-button"
-                        variant="primary"
-                        onClick={handleSendMessage}
-                        loading={isLoading}
-                      >
-                        Send
-                      </Button>
+                  <div style={{ width: '100%' }}>
+                    <input
+                      type="file"
+                      onChange={handleFileChange}
+                      accept=".txt,.csv,.json,.yaml,.xml,.md,.pdf,.doc,.docx"
+                      disabled={isLoading}
+                      style={{ width: '100%' }}
+                    />
+                  </div>
+                </FormField>,
+                
+                <div key="analytics-input-container" style={{ display: 'flex', width: '100%' }}>
+                  <SpaceBetween 
+                    size="xs" 
+                    direction="horizontal" 
+                    alignItems="center"
+                  >
+                    <div style={{ flex: '1 1 auto' }}>
+                      <Input
+                        value={userInput}
+                        onChange={({ detail }) => setUserInput(detail.value)}
+                        placeholder="Type your message here..."
+                        onKeyDown={handleKeyDown}
+                        disabled={isLoading}
+                      />
                     </div>
-                  }
-                </SpaceBetween>
-              </div>
-            ]}
-          </SpaceBetween>
-        ].filter(Boolean)}
+                    <Button 
+                      variant="primary"
+                      onClick={handleSendMessage}
+                      loading={isLoading}
+                    >
+                      Send
+                    </Button>
+                  </SpaceBetween>
+                </div>
+              ]}
+            </SpaceBetween>
+          </div>
+        ]}
       </SpaceBetween>
     </Container>
   );
+  
+  
+  
 }
 
 export default ScaAnalyticsChatBot;

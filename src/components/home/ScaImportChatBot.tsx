@@ -18,6 +18,7 @@ import Header from '@cloudscape-design/components/header';
 import Textarea from '@cloudscape-design/components/textarea';
 import FormField from '@cloudscape-design/components/form-field';
 import Alert from '@cloudscape-design/components/alert';
+import { LambdaClient, InvokeCommand } from "@aws-sdk/client-lambda";
 
 // PDF.js imports
 import * as pdfjsLib from 'pdfjs-dist';
@@ -33,6 +34,22 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.js';
 interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
+}
+
+interface BedrockResponse {
+  output: {
+    message: {
+      content: Array<{
+        text: string;
+      }>;
+    };
+  };
+}
+
+interface AWSError extends Error {
+  code?: string;
+  message: string;
+  statusCode?: number;
 }
 
 function ScaImportChatBot(): JSX.Element {
@@ -132,7 +149,9 @@ function ScaImportChatBot(): JSX.Element {
         messageContent = `${messageContent}\n\nFile Content:\n${fileContent}`;
       }
   
-      const updatedHistory = `${chatHistory}\nUser: ${userInput}${selectedFile ? ` (with file: ${selectedFile.name})` : ''}`;
+      const updatedHistory = `${chatHistory}\nUser: ${userInput}${
+        selectedFile ? ` (with file: ${selectedFile.name})` : ''
+      }`;
       setChatHistory(updatedHistory);
   
       const newMessage: ChatMessage = {
@@ -143,21 +162,70 @@ function ScaImportChatBot(): JSX.Element {
       const updatedMessages = [...messages, newMessage];
       setMessages(updatedMessages);
   
-      // Simplified Bedrock converse call
-      const response = await bedrockClient.send(new ConverseCommand({
-        modelId: 'arn:aws:bedrock:us-east-1:479394258862:prompt/WFAHHQAEX5',
-        //modelId: 'arn:aws:bedrock:us-west-2:702267260580:prompt/HLSG47NSQS',
-        messages: [{
-          role: 'user',
-          content: [{ text: messageContent }]
-        }]
-      }));
+      // Call to Bedrock with proper typing
+      const bedrockResponse = await bedrockClient.send(
+        new ConverseCommand({
+          modelId: 'arn:aws:bedrock:us-east-1:479394258862:prompt/WFAHHQAEX5',
+          messages: [{
+            role: 'user',
+            content: [{ text: messageContent }]
+          }]
+        })
+      ) as BedrockResponse;
   
-      // Parse the response similar to the Python example
-      if (response?.output?.message?.content?.[0]?.text) {
-        const outputText = response.output.message.content[0].text;
-        setChatHistory(prev => `${prev}\nBot: ${outputText}`);
-        setMessages(prev => [...prev, { role: 'assistant', content: outputText }]);
+      // Parse the Bedrock response
+      const outputText = bedrockResponse.output.message.content[0].text;
+  
+      // Initialize Lambda client
+      const lambdaClient = new LambdaClient({
+        region: 'us-east-1',
+        credentials: async () => {
+          const { credentials } = await fetchAuthSession();
+          if (!credentials) {
+            throw new Error('No credentials available');
+          }
+          return credentials;
+        }
+      });
+  
+      try {
+        // Invoke Lambda function
+        const lambdaResponse = await lambdaClient.send(
+          new InvokeCommand({
+            FunctionName: 'arn:aws:lambda:us-east-1:479394258862:function:scaMilestones-insert',
+            InvocationType: 'RequestResponse',
+            Payload: new TextEncoder().encode(JSON.stringify(outputText))
+          })
+        );
+  
+        // Parse Lambda response
+        const result = lambdaResponse.Payload 
+          ? JSON.parse(new TextDecoder().decode(lambdaResponse.Payload))
+          : null;
+  
+        // Update chat history with both Bedrock and Lambda responses
+        setChatHistory(prev => 
+          `${prev}\nBot: ${outputText}\nLambda Response: ${JSON.stringify(result, null, 2)}`
+        );
+        
+        setMessages(prev => [...prev, 
+          { 
+            role: 'assistant', 
+            content: outputText 
+          },
+          {
+            role: 'assistant',
+            content: `Lambda Response: ${JSON.stringify(result, null, 2)}`
+          }
+        ]);
+  
+      } catch (error: unknown) {
+        const lambdaError = error as AWSError;
+        console.error('Lambda Error:', lambdaError);
+        setError(`Error invoking Lambda: ${lambdaError.message}`);
+        setChatHistory(prev => 
+          `${prev}\nBot: ${outputText}\nError invoking Lambda: ${lambdaError.message}`
+        );
       }
   
     } catch (error) {
