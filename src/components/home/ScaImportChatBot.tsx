@@ -2,8 +2,11 @@
 import { useState } from 'react';
 
 // AWS imports
-import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
-import { fetchAuthSession } from 'aws-amplify/auth';
+import { 
+  BedrockRuntimeClient,
+  InvokeModelCommand
+} from '@aws-sdk/client-bedrock-runtime';
+import { fetchAuthSession } from '@aws-amplify/auth';
 
 // Cloudscape Design System imports
 import Container from '@cloudscape-design/components/container';
@@ -23,9 +26,7 @@ import { TextItem, TextMarkedContent } from 'pdfjs-dist/types/src/display/api';
 import mammoth from 'mammoth';
 
 // Initialize PDF.js worker
-if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `${window.location.origin}/pdf.worker.js`;
-}
+pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.js';
 
 function ScaImportChatBot(): JSX.Element {
   const [userInput, setUserInput] = useState<string>('');
@@ -37,7 +38,7 @@ function ScaImportChatBot(): JSX.Element {
   const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB limit
 
   const bedrockClient = new BedrockRuntimeClient({
-    region: 'us-east-1',
+    region: 'us-west-2',
     credentials: async () => {
       const { credentials } = await fetchAuthSession();
       if (!credentials) {
@@ -97,7 +98,6 @@ function ScaImportChatBot(): JSX.Element {
       } else if (fileType.endsWith('.doc') || fileType.endsWith('.docx')) {
         return await readDocFile(file);
       } else {
-        // For other text-based files
         return new Promise((resolve, reject) => {
           const reader = new FileReader();
           reader.onload = (e) => resolve(e.target?.result as string);
@@ -127,16 +127,11 @@ function ScaImportChatBot(): JSX.Element {
       const updatedHistory = `${chatHistory}\nUser: ${userInput}${selectedFile ? ` (with file: ${selectedFile.name})` : ''}`;
       setChatHistory(updatedHistory);
 
-      const prompt = {
-        prompt: `\n\nHuman: ${messageContent}\n\nAssistant:`,
-        max_tokens_to_sample: 300,
-        temperature: 0.7,
-        top_p: 1,
-      };
-
       const command = new InvokeModelCommand({
-        modelId: 'anthropic.claude-v2',
-        body: JSON.stringify(prompt),
+        modelId: 'arn:aws:bedrock:us-west-2:702267260580:prompt/HLSG47NSQS',
+        body: JSON.stringify({
+          prompt: `\n\nHuman: Using the prompt template from arn:aws:bedrock:us-west-2:702267260580:prompt/HLSG47NSQS, process the following input: ${messageContent}\n\nAssistant:`
+        }),
         contentType: 'application/json',
         accept: 'application/json',
       });
@@ -144,7 +139,7 @@ function ScaImportChatBot(): JSX.Element {
       const response = await bedrockClient.send(command);
       const responseBody = new TextDecoder().decode(response.body);
       const parsedResponse = JSON.parse(responseBody);
-      const botResponse = parsedResponse.completion || "Sorry, I couldn't generate a response.";
+      const botResponse = parsedResponse.completion || parsedResponse.content || "Sorry, I couldn't generate a response.";
 
       setChatHistory(`${updatedHistory}\nBot: ${botResponse}`);
     } catch (error) {
