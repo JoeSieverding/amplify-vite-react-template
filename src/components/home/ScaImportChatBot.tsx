@@ -209,7 +209,7 @@ function ScaImportChatBot(): JSX.Element {
                 </div>
               </FormField>,
               
-              <div style={{ display: 'flex', width: '100%' }}>
+              <div key="input-container" style={{ display: 'flex', width: '100%' }}>
                 <SpaceBetween 
                   key="message-input"
                   size="xs" 
