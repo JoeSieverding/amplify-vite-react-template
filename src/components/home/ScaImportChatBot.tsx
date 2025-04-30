@@ -3,10 +3,11 @@ import { useState } from 'react';
 
 // AWS imports
 import { 
-  BedrockRuntimeClient,
-  InvokeModelCommand
+  BedrockRuntimeClient, 
+  ConverseCommand 
 } from '@aws-sdk/client-bedrock-runtime';
 import { fetchAuthSession } from '@aws-amplify/auth';
+
 
 // Cloudscape Design System imports
 import Container from '@cloudscape-design/components/container';
@@ -28,17 +29,24 @@ import mammoth from 'mammoth';
 // Initialize PDF.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.js';
 
+// Types for chat messages
+interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
 function ScaImportChatBot(): JSX.Element {
   const [userInput, setUserInput] = useState<string>('');
   const [chatHistory, setChatHistory] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [error, setError] = useState<string>('');
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
 
   const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB limit
 
   const bedrockClient = new BedrockRuntimeClient({
-    region: 'us-west-2',
+    region: 'us-east-1',
     credentials: async () => {
       const { credentials } = await fetchAuthSession();
       if (!credentials) {
@@ -113,35 +121,45 @@ function ScaImportChatBot(): JSX.Element {
 
   const handleSendMessage = async (): Promise<void> => {
     if (!userInput.trim() && !selectedFile) return;
-
+  
     setIsLoading(true);
     setError('');
     let messageContent = userInput;
-
+  
     try {
       if (selectedFile) {
         const fileContent = await readFileContent(selectedFile);
         messageContent = `${messageContent}\n\nFile Content:\n${fileContent}`;
       }
-
+  
       const updatedHistory = `${chatHistory}\nUser: ${userInput}${selectedFile ? ` (with file: ${selectedFile.name})` : ''}`;
       setChatHistory(updatedHistory);
-
-      const command = new InvokeModelCommand({
-        modelId: 'arn:aws:bedrock:us-west-2:702267260580:prompt/HLSG47NSQS:1',
-        body: JSON.stringify({
-          prompt: `\n\nHuman: Using the prompt template from arn:aws:bedrock:us-west-2:702267260580:prompt/HLSG47NSQS, process the following input: ${messageContent}\n\nAssistant:`
-        }),
-        contentType: 'application/json',
-        accept: 'application/json',
-      });
-
-      const response = await bedrockClient.send(command);
-      const responseBody = new TextDecoder().decode(response.body);
-      const parsedResponse = JSON.parse(responseBody);
-      const botResponse = parsedResponse.completion || parsedResponse.content || "Sorry, I couldn't generate a response.";
-
-      setChatHistory(`${updatedHistory}\nBot: ${botResponse}`);
+  
+      const newMessage: ChatMessage = {
+        role: 'user',
+        content: messageContent
+      };
+  
+      const updatedMessages = [...messages, newMessage];
+      setMessages(updatedMessages);
+  
+      // Simplified Bedrock converse call
+      const response = await bedrockClient.send(new ConverseCommand({
+        modelId: 'arn:aws:bedrock:us-east-1:479394258862:prompt/WFAHHQAEX5',
+        //modelId: 'arn:aws:bedrock:us-west-2:702267260580:prompt/HLSG47NSQS',
+        messages: [{
+          role: 'user',
+          content: [{ text: messageContent }]
+        }]
+      }));
+  
+      // Parse the response similar to the Python example
+      if (response?.output?.message?.content?.[0]?.text) {
+        const outputText = response.output.message.content[0].text;
+        setChatHistory(prev => `${prev}\nBot: ${outputText}`);
+        setMessages(prev => [...prev, { role: 'assistant', content: outputText }]);
+      }
+  
     } catch (error) {
       console.error('Error:', error);
       setError('An error occurred while processing your request');
