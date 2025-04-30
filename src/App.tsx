@@ -11,6 +11,7 @@ import AddSca from "./components/home/AddSca";
 import ScaMilestoneList from "./components/home/ScaMilestoneList";
 import MilestoneUpdateForm from './components/home/MilestoneUpdateForm';
 import ScaImportChatBot from './components/home/ScaImportChatBot';
+import ScaAnalyticsChatBot from "./components/home/ScaAnalyticsChatBot";
 
 function App() {
 
@@ -25,6 +26,7 @@ function App() {
           <Route path="/scamilestonelist" element={<ScaMilestoneList />} />
           <Route path="/milestoneupdateform" element={<MilestoneUpdateForm />} />
           <Route path="/scaimportchatbot" element={<ScaImportChatBot />} />
+          <Route path="/scaanalyticschatbot" element={<ScaAnalyticsChatBot />} />
         </Routes>
 
       

@@ -33,6 +33,10 @@ function TopNav() {
   const handleImportChatBotClick = () => {
     navigate('/scaimportchatbot');  // Update this path to match your routing configuration
   };
+
+  const handleAnalyticsChatBotClick = () => {
+    navigate('/scaanalyticschatbot');  // Update this path to match your routing configuration
+  };
   
   useEffect(() => {
     if (authStatus === 'unauthenticated') {
@@ -70,7 +74,8 @@ function TopNav() {
     },
     {
       type: "button",
-      text: "Analytics Bot"
+      text: "Analytics Bot",
+      onClick: handleAnalyticsChatBotClick
     },
     {
       type: "button",
