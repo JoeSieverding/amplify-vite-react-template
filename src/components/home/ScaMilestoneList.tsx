@@ -102,7 +102,8 @@ const styles = {
   milestoneColumn: {
     whiteSpace: 'nowrap',
     overflow: 'hidden',
-    textOverflow: 'ellipsis'
+    textOverflow: 'ellipsis',
+    minWidth: '300px' 
   }
 } as const; // Using 'as const' to make it readonly
 
@@ -233,7 +234,8 @@ const handleMilestoneClick = useCallback((item: Schema["Milestone"]["type"]) => 
           </Button>
         </div>
       ),
-      width: 250
+      width: 350,
+      minWidth: 300
     },
     {
       id: "is_tech",
