@@ -18,13 +18,13 @@ This application helps AWS teams manage strategic partnerships by providing a ce
 
 You can run the application against different backend environments:
 
-### Sandbox Environment (Default)
+### Sandbox Environment (Default for Local Development)
 
 ```bash
 npm run dev
 ```
 
-This uses the default configuration from `amplify_outputs.json`.
+This uses the sandbox configuration from `amplify_outputs.sandbox.json`.
 
 ### Production Environment
 
@@ -34,19 +34,28 @@ npm run dev:prod
 
 This uses the production backend configuration while running your local code.
 
-## Setting Up Production Backend
+## Setting Up Local Environment
 
-1. Open `src/config.ts` and update the production configuration:
+1. Copy the example environment file:
 
-```typescript
-// Production backend configuration
-export const productionConfig = {
-  apiUrl: "https://your-production-appsync-endpoint.appsync-api.us-east-1.amazonaws.com/graphql",
-  apiKey: "your-production-api-key"
-};
+```bash
+cp .env.local.example .env.local
 ```
 
-2. Replace the placeholder values with your actual production backend details.
+2. Edit `.env.local` to customize your environment:
+
+```
+# Set to 'false' to use production backend locally
+# VITE_USE_SANDBOX=false
+```
+
+## Production Deployment
+
+The production build always uses the production backend configuration from `amplify_outputs.json`.
+
+```bash
+npm run build
+```
 
 ## Application Structure
 
@@ -63,10 +72,6 @@ export const productionConfig = {
 2. Install dependencies: `npm install`
 3. Start the development server: `npm run dev`
 4. Access the application at http://localhost:5173
-
-## Deployment
-
-The application is designed to be deployed using AWS Amplify. For detailed instructions, refer to the [AWS Amplify deployment documentation](https://docs.amplify.aws/react/start/quickstart/#deploy-a-fullstack-app-to-aws).
 
 ## Security
 

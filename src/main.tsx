@@ -2,32 +2,42 @@ import { createRoot } from "react-dom/client";
 import { Authenticator } from '@aws-amplify/ui-react';
 import App from "./App";
 import { Amplify } from "aws-amplify";
-import outputs from "../amplify_outputs.json";
+import productionOutputs from "../amplify_outputs.json";
 import '@aws-amplify/ui-react/styles.css';
 import TopNav from "./components/Common/TopNav";
 import "@cloudscape-design/global-styles/index.css"
 import { ThemeProvider } from '@aws-amplify/ui-react';
 import { BrowserRouter } from "react-router-dom";
 import './utils/pdfWorker';
-import { useProductionBackend, productionConfig } from './config';
 
-// Configure Amplify based on environment
-if (useProductionBackend) {
-  // Use production backend configuration
-  const config = {
-    ...outputs,
-    data: {
-      ...outputs.data,
-      url: productionConfig.apiUrl,
-      api_key: productionConfig.apiKey
+// In development mode, check if we should use sandbox
+if (import.meta.env.DEV) {
+  try {
+    // Dynamic import only works in development
+    const useSandbox = import.meta.env.VITE_USE_SANDBOX !== 'false';
+    
+    if (useSandbox) {
+      // This import is only attempted in development mode
+      import('../amplify_outputs.sandbox.json').then(module => {
+        const sandboxOutputs = module.default;
+        Amplify.configure(sandboxOutputs);
+        console.log('Using SANDBOX backend in development');
+      }).catch(err => {
+        console.warn('Failed to load sandbox config, using production:', err);
+        Amplify.configure(productionOutputs);
+      });
+    } else {
+      console.log('Using PRODUCTION backend in development');
+      Amplify.configure(productionOutputs);
     }
-  };
-  console.log('Using PRODUCTION backend');
-  Amplify.configure(config);
+  } catch (err) {
+    console.warn('Error loading configuration, using production:', err);
+    Amplify.configure(productionOutputs);
+  }
 } else {
-  // Use sandbox backend configuration (default from amplify_outputs.json)
-  console.log('Using SANDBOX backend');
-  Amplify.configure(outputs);
+  // In production, always use production config
+  console.log('Using PRODUCTION backend in production build');
+  Amplify.configure(productionOutputs);
 }
 
 const container = document.getElementById("root");
