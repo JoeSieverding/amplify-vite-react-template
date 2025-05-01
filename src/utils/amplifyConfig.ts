@@ -15,7 +15,7 @@ const productionConfig = {
 };
 
 // Environment flag - set to 'production' to use production backend
-const currentEnv = process.env.REACT_APP_ENV || 'sandbox';
+const currentEnv = import.meta.env?.VITE_APP_ENV || 'sandbox';
 
 // Configure Amplify based on environment
 export const configureAmplify = () => {

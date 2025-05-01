@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import type { Schema } from "../../../amplify/data/resource";
 import { generateClient } from "aws-amplify/data";
@@ -12,7 +12,9 @@ import {
   Input,
   Checkbox,
   TextContent,
-  Select
+  Select,
+  Box,
+  Textarea
 } from "@cloudscape-design/components";
 
 const client = generateClient<Schema>();
@@ -37,6 +39,11 @@ interface FormData {
   is_rag_override: boolean;              // Required with default false
   updated_last_by: string | null;
   scaId: string;                         // Required
+  // New fields (not in database)
+  start_date?: string | null;
+  status_date?: string | null;
+  expected_kpi_value?: string | null;
+  notes?: string | null;
 }
 
 interface FormError {
@@ -46,6 +53,8 @@ interface FormError {
   targeted_date?: string;
   input_type?: string;
   milestone_goal?: string;
+  start_date?: string;
+  status_date?: string;
 }
 
 interface SelectOption {
@@ -86,6 +95,7 @@ function MilestoneUpdateForm() {
   const [isLoading, setIsLoading] = useState(false);
   const { item, sca } = location.state as LocationState;
   const [formErrors, setFormErrors] = useState<FormError>({});
+  const [showRagNote, setShowRagNote] = useState(false);
 
   // Initialize form with data from the milestone
   const [formData, setFormData] = useState<FormData>({
@@ -102,8 +112,31 @@ function MilestoneUpdateForm() {
     latest_actuals: item.latest_actuals ?? null,
     calc_rag_type: item.calc_rag_type ?? null,
     is_rag_override: item.is_rag_override || false,
-    updated_last_by: item.updated_last_by ?? null
+    updated_last_by: item.updated_last_by ?? null,
+    // Initialize new fields
+    start_date: null,
+    status_date: null,
+    expected_kpi_value: null,
+    notes: null
   });
+
+  // Check if RAG override should be selected based on conditions
+  useEffect(() => {
+    const latestActuals = parseFloat(formData.latest_actuals || '0');
+    const expectedKpi = parseFloat(formData.expected_kpi_value || '0');
+    
+    if (
+      !isNaN(latestActuals) && 
+      !isNaN(expectedKpi) && 
+      latestActuals < expectedKpi && 
+      formData.calc_rag_type !== 'red'
+    ) {
+      setFormData(prev => ({ ...prev, is_rag_override: true }));
+      setShowRagNote(true);
+    } else {
+      setShowRagNote(false);
+    }
+  }, [formData.latest_actuals, formData.expected_kpi_value, formData.calc_rag_type]);
 
   // Form validation
   const validateForm = useCallback(() => {
@@ -135,6 +168,16 @@ function MilestoneUpdateForm() {
       isValid = false;
     }
 
+    if (formData.start_date && !isValidDate(formData.start_date)) {
+      errors.start_date = "Invalid date format. Use MM/DD/YY";
+      isValid = false;
+    }
+
+    if (formData.status_date && !isValidDate(formData.status_date)) {
+      errors.status_date = "Invalid date format. Use MM/DD/YY";
+      isValid = false;
+    }
+
     if (!formData.input_type) {
       errors.input_type = "Input type is required";
       isValid = false;
@@ -160,9 +203,15 @@ function MilestoneUpdateForm() {
       latest_actuals: item.latest_actuals ?? null,
       calc_rag_type: item.calc_rag_type ?? null,
       is_rag_override: item.is_rag_override || false,
-      updated_last_by: item.updated_last_by ?? null
+      updated_last_by: item.updated_last_by ?? null,
+      // Reset new fields
+      start_date: null,
+      status_date: null,
+      expected_kpi_value: null,
+      notes: null
     });
     setFormErrors({});
+    setShowRagNote(false);
   }, [item]);
 
   // Handle form submission
@@ -171,6 +220,7 @@ function MilestoneUpdateForm() {
 
     setIsLoading(true);
     try {
+      // Only include fields that are in the database schema
       const updateData = {
         id: formData.id,
         scaId: formData.scaId,
@@ -202,24 +252,23 @@ function MilestoneUpdateForm() {
   };
 
   return (
-    <Form
-      actions={
-        <SpaceBetween direction="horizontal" size="xs">
-          <Button onClick={handleReset}>Reset</Button>
-          <Button variant="link" onClick={handleCancel}>
-            Cancel
-          </Button>
-          <Button variant="primary" onClick={handleSubmit} loading={isLoading}>
-            Submit
-          </Button>
-        </SpaceBetween>
-      }
-    >
+    <Form>
       <Container>
         <SpaceBetween direction="vertical" size="l">
           <Header
             variant="h1"
             description={sca ? `Update milestone information for ${sca.partner} - ${sca.contract_name}` : ''}
+            actions={
+              <SpaceBetween direction="horizontal" size="xs">
+                <Button onClick={handleReset}>Reset</Button>
+                <Button variant="link" onClick={handleCancel}>
+                  Cancel
+                </Button>
+                <Button variant="primary" onClick={handleSubmit} loading={isLoading}>
+                  Submit
+                </Button>
+              </SpaceBetween>
+            }
           >
             Update Milestone
           </Header>
@@ -255,6 +304,33 @@ function MilestoneUpdateForm() {
                     onChange={({ detail }) =>
                       setFormData(prev => ({ ...prev, milestone_type: detail.value || null }))
                     }
+                  />
+                </FormField>
+
+                <FormField
+                  label="Start Date"
+                  errorText={formErrors.start_date}
+                >
+                  <Input
+                    value={formData.start_date || ''}
+                    placeholder="MM/DD/YY"
+                    onChange={({ detail }) =>
+                      setFormData(prev => ({ ...prev, start_date: detail.value || null }))
+                    }
+                  />
+                </FormField>
+
+                <FormField
+                  label="Target Date"
+                  errorText={formErrors.targeted_date}
+                >
+                  <Input
+                    value={formData.targeted_date || ''}
+                    placeholder="MM/DD/YY"
+                    onChange={({ detail }) => {
+                      const newValue = detail.value;
+                      setFormData(prev => ({ ...prev, targeted_date: newValue || null }));
+                    }}
                   />
                 </FormField>
               </SpaceBetween>
@@ -330,65 +406,37 @@ function MilestoneUpdateForm() {
             </SpaceBetween>
           </Container>
 
-          {/* Milestone Performance Section */}
+          {/* Milestone Performance Section - renamed to "Enter New Milestone Status Entry" */}
           <Container
             header={
-              <Header variant="h2">Milestone Performance</Header>
+              <Header variant="h2">Enter New Milestone Status Entry</Header>
             }
           >
             <SpaceBetween direction="vertical" size="l">
+              {/* First Row */}
               <SpaceBetween direction="horizontal" size="l">
                 <FormField
-                  label="Target Date"
-                  errorText={formErrors.targeted_date}
+                  label="Status Date"
+                  errorText={formErrors.status_date}
                 >
                   <Input
-                    value={formData.targeted_date || ''}
+                    value={formData.status_date || ''}
                     placeholder="MM/DD/YY"
                     onChange={({ detail }) => {
                       const newValue = detail.value;
-                      
-                      // If field is cleared, allow it
-                      if (!newValue) {
-                        setFormData(prev => ({ ...prev, targeted_date: null }));
-                        setFormErrors(prev => ({ ...prev, targeted_date: undefined }));
-                        return;
-                      }
-
-                      // If the field hasn't been modified, keep the existing value
-                      if (newValue === formData.targeted_date) {
-                        return;
-                      }
-
-                      // Try to convert to MM/DD/YY format if it's a new value
-                      try {
-                        const date = new Date(newValue);
-                        if (!isNaN(date.getTime())) {
-                          // Valid date - format as MM/DD/YY
-                          const month = (date.getMonth() + 1).toString().padStart(2, '0');
-                          const day = date.getDate().toString().padStart(2, '0');
-                          const year = (date.getFullYear() % 100).toString().padStart(2, '0');
-                          const formattedDate = `${month}/${day}/${year}`;
-                          
-                          setFormData(prev => ({ ...prev, targeted_date: formattedDate }));
-                          setFormErrors(prev => ({ ...prev, targeted_date: undefined }));
-                        } else {
-                          // Invalid date
-                          setFormData(prev => ({ ...prev, targeted_date: newValue }));
-                          setFormErrors(prev => ({ 
-                            ...prev, 
-                            targeted_date: "Please enter a valid date in MM/DD/YY format" 
-                          }));
-                        }
-                      } catch (error) {
-                        // If date parsing fails
-                        setFormData(prev => ({ ...prev, targeted_date: newValue }));
-                        setFormErrors(prev => ({ 
-                          ...prev, 
-                          targeted_date: "Please enter a valid date in MM/DD/YY format" 
-                        }));
-                      }
+                      setFormData(prev => ({ ...prev, status_date: newValue || null }));
                     }}
+                  />
+                </FormField>
+
+                <FormField
+                  label="Expected KPI Value for Status Date"
+                >
+                  <Input
+                    value={formData.expected_kpi_value || ''}
+                    onChange={({ detail }) =>
+                      setFormData(prev => ({ ...prev, expected_kpi_value: detail.value || null }))
+                    }
                   />
                 </FormField>
 
@@ -427,11 +475,32 @@ function MilestoneUpdateForm() {
                     onChange={({ detail }) =>
                       setFormData(prev => ({ ...prev, is_rag_override: detail.checked }))
                     }
+                    disabled={true}
                   >
                     <TextContent>Override RAG Status</TextContent>
                   </Checkbox>
                 </FormField>
               </SpaceBetween>
+
+              {/* Show note if RAG override is triggered */}
+              {showRagNote && (
+                <Box color="text-status-warning">
+                  Explain why RAG status is not Red in notes below
+                </Box>
+              )}
+
+              {/* Second Row - Notes field */}
+              <FormField
+                label="Notes"
+              >
+                <Textarea
+                  value={formData.notes || ''}
+                  onChange={({ detail }) =>
+                    setFormData(prev => ({ ...prev, notes: detail.value || null }))
+                  }
+                  rows={3}
+                />
+              </FormField>
             </SpaceBetween>
           </Container>
         </SpaceBetween>

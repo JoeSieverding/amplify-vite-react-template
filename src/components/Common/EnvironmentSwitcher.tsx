@@ -11,10 +11,6 @@ const EnvironmentSwitcher: React.FC = () => {
     localStorage.setItem('useProductionEnv', isProduction ? 'true' : 'false');
   }, [isProduction]);
 
-  const handleToggleChange = () => {
-    setIsProduction(!isProduction);
-  };
-
   const handleApplyChanges = () => {
     // Reload the page to apply the new configuration
     window.location.reload();
