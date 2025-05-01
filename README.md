@@ -1,20 +1,72 @@
-## AWS Amplify React+Vite Starter Template
+## SCA Suite - Strategic Contract Agreement Management
 
-This repository provides a starter template for creating applications using React+Vite and AWS Amplify, emphasizing easy setup for authentication, API, and database capabilities.
+SCA Suite is a comprehensive application for managing Strategic Contract Agreements (SCAs) between AWS and partners. It provides tools for tracking contracts, milestones, and performance metrics.
 
 ## Overview
 
-This template equips you with a foundational React application integrated with AWS Amplify, streamlined for scalability and performance. It is ideal for developers looking to jumpstart their project with pre-configured AWS services like Cognito, AppSync, and DynamoDB.
+This application helps AWS teams manage strategic partnerships by providing a centralized platform for contract management, milestone tracking, and analytics. Built with React, Vite, and AWS Amplify, it offers a responsive and intuitive interface for managing complex partner relationships.
 
 ## Features
 
-- **Authentication**: Setup with Amazon Cognito for secure user authentication.
-- **API**: Ready-to-use GraphQL endpoint with AWS AppSync.
-- **Database**: Real-time database powered by Amazon DynamoDB.
+- **Contract Management**: Create, view, and update Strategic Contract Agreements with partners.
+- **Milestone Tracking**: Define and track technical and business milestones with RAG status indicators.
+- **Analytics**: Analyze contract performance and milestone completion through interactive dashboards.
+- **ChatBot Integration**: Import SCA data and analyze metrics using AI-powered chatbots.
+- **Authentication**: Secure access with Amazon Cognito authentication limited to @amazon.com email addresses.
 
-## Deploying to AWS
+## Development with Different Backends
 
-For detailed instructions on deploying your application, refer to the [deployment section](https://docs.amplify.aws/react/start/quickstart/#deploy-a-fullstack-app-to-aws) of our documentation.
+You can run the application against different backend environments:
+
+### Sandbox Environment (Default)
+
+```bash
+npm run dev
+```
+
+This uses the default configuration from `amplify_outputs.json`.
+
+### Production Environment
+
+```bash
+npm run dev:prod
+```
+
+This uses the production backend configuration while running your local code.
+
+## Setting Up Production Backend
+
+1. Open `src/config.ts` and update the production configuration:
+
+```typescript
+// Production backend configuration
+export const productionConfig = {
+  apiUrl: "https://your-production-appsync-endpoint.appsync-api.us-east-1.amazonaws.com/graphql",
+  apiKey: "your-production-api-key"
+};
+```
+
+2. Replace the placeholder values with your actual production backend details.
+
+## Application Structure
+
+- **Authentication**: Uses AWS Cognito with custom validation for @amazon.com emails.
+- **Data Model**: Includes Sca and Milestone models with relationships between them.
+- **UI Components**: Built with Cloudscape Design components for a consistent AWS look and feel.
+- **Routing**: React Router for navigation between different views.
+- **State Management**: React hooks for local state management.
+- **API Integration**: AWS AppSync GraphQL API for data operations.
+
+## Getting Started
+
+1. Clone the repository
+2. Install dependencies: `npm install`
+3. Start the development server: `npm run dev`
+4. Access the application at http://localhost:5173
+
+## Deployment
+
+The application is designed to be deployed using AWS Amplify. For detailed instructions, refer to the [AWS Amplify deployment documentation](https://docs.amplify.aws/react/start/quickstart/#deploy-a-fullstack-app-to-aws).
 
 ## Security
 
@@ -22,4 +74,4 @@ See [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications) for more inform
 
 ## License
 
-This library is licensed under the MIT-0 License. See the LICENSE file.
+This application is licensed under the MIT-0 License. See the LICENSE file for details.

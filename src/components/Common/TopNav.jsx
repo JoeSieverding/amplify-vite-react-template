@@ -5,6 +5,7 @@ import { useAuthenticator } from '@aws-amplify/ui-react';
 import { getCurrentUser, signOut } from 'aws-amplify/auth';
 import logoIcon from './ccoe-phone-tool-icon.png';
 import { useNavigate } from 'react-router-dom';
+import EnvironmentSwitcher from './EnvironmentSwitcher';
 
 function TopNav() {
   const { authStatus } = useAuthenticator((context) => [context.authStatus]);
@@ -13,6 +14,7 @@ function TopNav() {
     username: "Loading...",
     email: "Loading..."
   });
+  const [showEnvSwitcher, setShowEnvSwitcher] = useState(false);
 
   const handleSignOut = () => {
     signOut()
@@ -36,6 +38,10 @@ function TopNav() {
 
   const handleAnalyticsChatBotClick = () => {
     navigate('/scaanalyticschatbot');  // Update this path to match your routing configuration
+  };
+
+  const handleToggleEnvSwitcher = () => {
+    setShowEnvSwitcher(!showEnvSwitcher);
   };
   
   useEffect(() => {
@@ -61,6 +67,9 @@ function TopNav() {
     fetchUserDetails();
   }, [authStatus]);
 
+  // Get current environment
+  const isProduction = localStorage.getItem('useProductionEnv') === 'true';
+
   const utilities = [
     {
       type: "button",
@@ -76,6 +85,11 @@ function TopNav() {
       type: "button",
       text: "Analytics Bot",
       onClick: handleAnalyticsChatBotClick
+    },
+    {
+      type: "button",
+      text: `Environment: ${isProduction ? 'PRODUCTION' : 'SANDBOX'}`,
+      onClick: handleToggleEnvSwitcher
     },
     {
       type: "button",
@@ -112,17 +126,33 @@ function TopNav() {
   ];
 
   return (
-    <TopNavigation
-      identity={{
-        href: "#",
-        title: "SCA Management App",
-        logo: {
-          src: logoIcon,
-          alt: "No Icon"
-        }
-      }}
-      utilities={utilities}
-    />
+    <>
+      <TopNavigation
+        identity={{
+          href: "#",
+          title: "SCA Management App",
+          logo: {
+            src: logoIcon,
+            alt: "No Icon"
+          }
+        }}
+        utilities={utilities}
+      />
+      {showEnvSwitcher && (
+        <div style={{ 
+          position: 'absolute', 
+          right: '10px', 
+          top: '60px', 
+          zIndex: 1000,
+          backgroundColor: 'white',
+          border: '1px solid #ccc',
+          borderRadius: '5px',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)'
+        }}>
+          <EnvironmentSwitcher />
+        </div>
+      )}
+    </>
   );
 }
 

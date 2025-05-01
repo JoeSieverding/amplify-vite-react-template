@@ -9,8 +9,26 @@ import "@cloudscape-design/global-styles/index.css"
 import { ThemeProvider } from '@aws-amplify/ui-react';
 import { BrowserRouter } from "react-router-dom";
 import './utils/pdfWorker';
+import { useProductionBackend, productionConfig } from './config';
 
-Amplify.configure(outputs);
+// Configure Amplify based on environment
+if (useProductionBackend) {
+  // Use production backend configuration
+  const config = {
+    ...outputs,
+    data: {
+      ...outputs.data,
+      url: productionConfig.apiUrl,
+      api_key: productionConfig.apiKey
+    }
+  };
+  console.log('Using PRODUCTION backend');
+  Amplify.configure(config);
+} else {
+  // Use sandbox backend configuration (default from amplify_outputs.json)
+  console.log('Using SANDBOX backend');
+  Amplify.configure(outputs);
+}
 
 const container = document.getElementById("root");
 if (!container) throw new Error('Failed to find the root element');
