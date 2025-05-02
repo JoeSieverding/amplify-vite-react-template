@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "dev:prod": "cross-env VITE_USE_SANDBOX=false vite",
+    "dev:prod": "node use-production.cjs",
     "build": "tsc && vite build && shx cp node_modules/pdfjs-dist/build/pdf.worker.js dist/",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
@@ -45,7 +45,6 @@
     "aws-cdk-lib": "^2.138.0",
     "constructs": "^10.3.0",
     "copyfiles": "^2.4.1",
-    "cross-env": "^7.0.3",
     "esbuild": "^0.20.2",
     "eslint": "^8.57.0",
     "eslint-plugin-react-hooks": "^4.6.0",

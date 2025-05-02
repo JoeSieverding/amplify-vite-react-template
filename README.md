@@ -14,44 +14,19 @@ This application helps AWS teams manage strategic partnerships by providing a ce
 - **ChatBot Integration**: Import SCA data and analyze metrics using AI-powered chatbots.
 - **Authentication**: Secure access with Amazon Cognito authentication limited to @amazon.com email addresses.
 
-## Development with Different Backends
+## Development
 
-You can run the application against different backend environments:
-
-### Sandbox Environment (Default for Local Development)
-
+For local development with the sandbox backend:
 ```bash
 npm run dev
 ```
 
-This uses the sandbox configuration from `amplify_outputs.sandbox.json`.
-
-### Production Environment
-
+For local development with the production backend:
 ```bash
 npm run dev:prod
 ```
 
-This uses the production backend configuration while running your local code.
-
-## Setting Up Local Environment
-
-1. Copy the example environment file:
-
-```bash
-cp .env.local.example .env.local
-```
-
-2. Edit `.env.local` to customize your environment:
-
-```
-# Set to 'false' to use production backend locally
-# VITE_USE_SANDBOX=false
-```
-
 ## Production Deployment
-
-The production build always uses the production backend configuration from `amplify_outputs.json`.
 
 ```bash
 npm run build

@@ -10,5 +10,5 @@ export const sandboxConfig = {
   apiKey: "da2-zdw4py2yn5bbfddzhzqhyrk7me"
 };
 
-// Determine which backend to use based on environment variable
-export const useProductionBackend = import.meta.env.VITE_USE_PRODUCTION_BACKEND === "true";
+// Always use production backend
+export const useProductionBackend = true;
