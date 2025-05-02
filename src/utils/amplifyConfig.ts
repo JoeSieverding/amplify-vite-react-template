@@ -1,28 +1,13 @@
 import { Amplify } from "aws-amplify";
 import outputs from "../../amplify_outputs.json";
 
-// Default configuration (sandbox)
-const sandboxConfig = outputs;
-
-// Production configuration - replace these values with your production endpoints
-const productionConfig = {
-  ...outputs,
-  data: {
-    ...outputs.data,
-    url: "https://your-production-appsync-endpoint.appsync-api.us-east-1.amazonaws.com/graphql",
-    api_key: "your-production-api-key" // Replace with your production API key
-  }
-};
-
-// Environment flag - set to 'production' to use production backend
-const currentEnv = import.meta.env?.VITE_APP_ENV || 'sandbox';
-
-// Configure Amplify based on environment
+// Configure Amplify based on the outputs file
 export const configureAmplify = () => {
-  const config = currentEnv === 'production' ? productionConfig : sandboxConfig;
-  Amplify.configure(config);
-  console.log(`Amplify configured for ${currentEnv} environment`);
+  Amplify.configure(outputs);
+  console.log(`Amplify configured with endpoint: ${outputs.data.url}`);
 };
 
-// Helper function to check current environment
-export const isProduction = () => currentEnv === 'production';
+// Helper function to check if we're using production
+export const isProduction = () => {
+  return outputs.data.url.includes('h2qagbm7vjb4tlk5ebnq2dmq4m');
+};

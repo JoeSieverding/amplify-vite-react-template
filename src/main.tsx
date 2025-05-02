@@ -2,7 +2,7 @@ import { createRoot } from "react-dom/client";
 import { Authenticator } from '@aws-amplify/ui-react';
 import App from "./App";
 import { Amplify } from "aws-amplify";
-import outputs from "../amplify_outputs.json";
+import outputs from "../amplify_outputs.json"; // This should contain your production configuration
 import '@aws-amplify/ui-react/styles.css';
 import TopNav from "./components/Common/TopNav";
 import "@cloudscape-design/global-styles/index.css"
@@ -21,20 +21,15 @@ async function clearAuthState() {
   }
 }
 
-// Configure Amplify based on environment
-async function configureApp() {
+// Configure Amplify and render the app
+async function initializeApp() {
   await clearAuthState();
   
-  // Configure Amplify with the outputs from amplify_outputs.json
-  console.log('Configuring Amplify with outputs from amplify_outputs.json');
+  // Always use the production configuration
+  console.log('Configuring Amplify with production backend');
   Amplify.configure(outputs);
-
-  // Render the app after configuration is complete
-  renderApp();
-}
-
-// Function to render the app
-function renderApp() {
+  
+  // Render the app
   const container = document.getElementById("root");
   if (!container) throw new Error('Failed to find the root element');
   const root = createRoot(container);
@@ -73,8 +68,8 @@ function renderApp() {
   );
 }
 
-// Start the configuration process
-configureApp().catch(error => {
+// Start the app
+initializeApp().catch(error => {
   console.error('Error during app initialization:', error);
   // Render a fallback UI or error message
   const container = document.getElementById("root");

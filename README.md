@@ -6,6 +6,27 @@ SCA Suite is a comprehensive application for managing Strategic Contract Agreeme
 
 This application helps AWS teams manage strategic partnerships by providing a centralized platform for contract management, milestone tracking, and analytics. Built with React, Vite, and AWS Amplify, it offers a responsive and intuitive interface for managing complex partner relationships.
 
+## Environment Switching
+
+This application supports two environments:
+
+- **Sandbox**: Development/testing environment
+- **Production**: Production environment
+
+### How to Switch Environments
+
+You can switch between environments using the provided script:
+
+```bash
+# Switch to production environment
+node switch-env.cjs prod
+
+# Switch to sandbox environment
+node switch-env.cjs sandbox
+```
+
+After switching environments, you'll need to restart your application for the changes to take effect.
+
 ## Features
 
 - **Contract Management**: Create, view, and update Strategic Contract Agreements with partners.
@@ -16,15 +37,11 @@ This application helps AWS teams manage strategic partnerships by providing a ce
 
 ## Development
 
-For local development with the sandbox backend:
 ```bash
 npm run dev
 ```
 
-For local development with the production backend:
-```bash
-npm run dev:prod
-```
+This will start the development server.
 
 ## Production Deployment
 
@@ -40,6 +57,17 @@ npm run build
 - **Routing**: React Router for navigation between different views.
 - **State Management**: React hooks for local state management.
 - **API Integration**: AWS AppSync GraphQL API for data operations.
+
+## Configuration Files
+
+- `amplify_outputs.json`: The active configuration file used by the application
+- `amplify_outputs.sandbox.json`: Sandbox environment configuration
+- `amplify_outputs.prod.json`: Production environment configuration
+
+## API Endpoints
+
+- Sandbox: https://esheqvoqgjfnbgmxy2dw7mks2u.appsync-api.us-east-1.amazonaws.com/graphql
+- Production: https://h2qagbm7vjb4tlk5ebnq2dmq4m.appsync-api.us-east-1.amazonaws.com/graphql
 
 ## Getting Started
 

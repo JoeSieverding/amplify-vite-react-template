@@ -29,3 +29,8 @@ amplifyconfiguration*
 
 # Environment files
 .env.local
+
+# Keep configuration files
+!amplify_outputs.json
+!amplify_outputs.prod.json
+!amplify_outputs.sandbox.json
