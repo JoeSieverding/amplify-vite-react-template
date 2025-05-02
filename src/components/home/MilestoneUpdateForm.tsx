@@ -71,7 +71,7 @@ interface MilestoneStatusType {
   updated_last_by: string | null;
   created_at: string;
 }
-
+  
 // Helper function to get today's date in MM/DD/YY format
 const getTodayFormatted = (): string => {
   const today = new Date();
@@ -80,6 +80,50 @@ const getTodayFormatted = (): string => {
   const year = String(today.getFullYear()).slice(-2);
   return `${month}/${day}/${year}`;
 };
+
+// Helper function to validate and format date in MM/DD/YY format
+const validateAndFormatDate = (dateString: string | null | undefined): { 
+  isValid: boolean; 
+  formattedDate: string | null;
+  errorMessage?: string;
+} => {
+  if (!dateString) return { isValid: true, formattedDate: null };
+  
+  // Check for MM/DD/YY format
+  const regex = /^(0[1-9]|1[0-2])\/(0[1-9]|[12][0-9]|3[01])\/\d{2}$/;
+  if (!regex.test(dateString)) {
+    return { 
+      isValid: false, 
+      formattedDate: null,
+      errorMessage: "Date must be in MM/DD/YY format" 
+    };
+  }
+  
+  // Validate the date is real
+  const [month, day, year] = dateString.split('/').map(num => parseInt(num, 10));
+  const date = new Date(2000 + year, month - 1, day);
+  const isValid = date.getMonth() === month - 1 && date.getDate() === day;
+  
+  if (!isValid) {
+    return { 
+      isValid: false, 
+      formattedDate: null,
+      errorMessage: "Please enter a valid date" 
+    };
+  }
+  
+  // Format the date as MM/DD/YY
+  const formattedMonth = month.toString().padStart(2, '0');
+  const formattedDay = day.toString().padStart(2, '0');
+  const formattedYear = (year % 100).toString().padStart(2, '0');
+  
+  return { 
+    isValid: true, 
+    formattedDate: `${formattedMonth}/${formattedDay}/${formattedYear}`,
+    errorMessage: undefined
+  };
+};
+
 
 function MilestoneUpdateForm() {
   const location = useLocation();
@@ -136,6 +180,42 @@ function MilestoneUpdateForm() {
   const [pageSize] = useState(10);
   const [sortingColumn, setSortingColumn] = useState<{ id: string, sortingField: string }>({ id: "status_date", sortingField: "status_date" });
   const [sortingDescending, setSortingDescending] = useState(true);
+
+  const handleSaveStatusUpdate = () => {
+    // Validate required fields for status entry
+    if (!formData.expected_kpi_value || !formData.latest_actuals) {
+      return;
+    }
+    
+    // Create a new status entry
+    const newStatusEntry: MilestoneStatusType = {
+      id: Date.now().toString(), // Temporary ID
+      status_date: formData.status_date || getTodayFormatted(),
+      expected_kpi_value: formData.expected_kpi_value,
+      latest_actuals: formData.latest_actuals,
+      calc_rag_type: formData.calc_rag_type || null,
+      notes: formData.notes || null,
+      updated_last_by: "current-user@example.com", // This would come from auth context
+      created_at: new Date().toISOString()
+    };
+    
+    // Add the new entry to the history
+    setMilestoneStatusHistory(prev => [newStatusEntry, ...prev]);
+    
+    // Reset the status entry form fields
+    setFormData(prev => ({
+      ...prev,
+      status_date: getTodayFormatted(), // Reset to today's date
+      expected_kpi_value: null,
+      latest_actuals: null,
+      calc_rag_type: null,
+      is_rag_override: false,
+      notes: null
+    }));
+    
+    // Show a success message or notification if needed
+    console.log("Status update saved:", newStatusEntry);
+  };
 
   // Helper function to format dates
   const formatDate = (dateString: string | null | undefined) => {
@@ -291,12 +371,12 @@ function MilestoneUpdateForm() {
     setIsLoadingHistory(false);
   }, []);
 
-  const inputTypeOptions = [
-    { value: "percentage", label: "Percentage" },
-    { value: "currency", label: "Currency" },
-    { value: "number", label: "Number" },
-    { value: "boolean", label: "Boolean" }
-  ];
+  //const inputTypeOptions = [
+  //  { value: "percentage", label: "Percentage" },
+  //  { value: "currency", label: "Currency" },
+  //  { value: "number", label: "Number" },
+  //  { value: "boolean", label: "Boolean" }
+  //];
 
   const ragTypeOptions = [
     { value: "Green", label: "Green" },
@@ -325,15 +405,49 @@ function MilestoneUpdateForm() {
     // Get all validation errors for display
     const errors = validateFormFields();
     
-    // Add date format validation
+    // Validate date formats
+    if (formData.start_date) {
+      const { isValid, errorMessage } = validateAndFormatDate(formData.start_date);
+      if (!isValid) {
+        errors.start_date = errorMessage;
+      }
+    }
+    
+    if (formData.targeted_date) {
+      const { isValid, errorMessage } = validateAndFormatDate(formData.targeted_date);
+      if (!isValid) {
+        errors.targeted_date = errorMessage;
+      }
+    }
+    
     if (formData.status_date && typeof formData.status_date === 'string' && 
         !/^\d{2}\/\d{2}\/\d{2}$/.test(formData.status_date)) {
       errors.status_date = "Date must be in MM/DD/YY format";
     }
     
+    // Check date order if both dates are valid
+    if (formData.start_date && formData.targeted_date) {
+      const startDateResult = validateAndFormatDate(formData.start_date);
+      const targetDateResult = validateAndFormatDate(formData.targeted_date);
+      
+      if (startDateResult.isValid && targetDateResult.isValid) {
+        // Parse dates for comparison
+        const [startMonth, startDay, startYear] = formData.start_date.split('/').map(num => parseInt(num, 10));
+        const [targetMonth, targetDay, targetYear] = formData.targeted_date.split('/').map(num => parseInt(num, 10));
+        
+        const startDate = new Date(2000 + startYear, startMonth - 1, startDay);
+        const targetDate = new Date(2000 + targetYear, targetMonth - 1, targetDay);
+        
+        if (startDate > targetDate) {
+          errors.start_date = "Start Date must be before Due Date";
+        }
+      }
+    }
+    
     setFormErrors(errors);
     
     // For submission validation, only block submission if fields that had data initially are now empty
+    // or if there are any validation errors
     const blockingErrors: FormError = {};
     
     Object.keys(fieldsWithData).forEach(field => {
@@ -345,12 +459,20 @@ function MilestoneUpdateForm() {
       }
     });
     
+    // Add any validation errors to blocking errors
+    Object.keys(errors).forEach(key => {
+      if (errors[key as keyof FormError]) {
+        blockingErrors[key as keyof FormError] = errors[key as keyof FormError];
+      }
+    });
+    
     return Object.keys(blockingErrors).length === 0;
   }, [
     formData, 
     fieldsWithData,
     validateFormFields
   ]);
+  
 
   const handleSubmit = async () => {
     // The validateForm function now handles both displaying errors and checking for blocking errors
@@ -499,9 +621,13 @@ function MilestoneUpdateForm() {
             }
           >
             <SpaceBetween direction="vertical" size="l">
-              {/* First Row - Description takes double width */}
+        {/* First Row - Description with label to the left */}
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <div style={{ width: '120px', flexShrink: 0 }}>
+              <Box fontWeight="bold">Description</Box>
+            </div>
+            <div style={{ flex: '1' }}>
               <FormField
-                label="Description"
                 errorText={formErrors.milestone_description}
                 stretch={true}
               >
@@ -512,165 +638,172 @@ function MilestoneUpdateForm() {
                   }
                 />
               </FormField>
-  
-              {/* Second Row - Type, Dates, and Checkboxes */}
-              <SpaceBetween direction="horizontal" size="l">
-                <FormField
-                  label="Milestone Type"
-                  errorText={formErrors.milestone_type}
-                >
-                  <Input
-                    value={formData.milestone_type || ''}
-                    onChange={({ detail }) =>
-                      setFormData(prev => ({ ...prev, milestone_type: detail.value || null }))
-                    }
-                  />
-                </FormField>
-  
-                <FormField
-                  label="Milestone Start Date"
-                  errorText={formErrors.start_date}
-                  description={
-                    formData.start_date && formData.targeted_date && 
-                    (() => {
-                      try {
-                        const startDate = new Date(formData.start_date);
-                        const dueDate = new Date(formData.targeted_date);
-                        if (!isNaN(startDate.getTime()) && !isNaN(dueDate.getTime())) {
-                          const oneMonth = 30 * 24 * 60 * 60 * 1000; // approx 30 days in ms
-                          if (startDate < dueDate && dueDate.getTime() - startDate.getTime() < oneMonth) {
-                            return "Start Date is less than a month before Due Date";
-                          }
-                        }
-                        return undefined;
-                      } catch (error) {
-                        return undefined;
-                      }
-                    })()
-                  }
-                  constraintText="MM/DD/YY"
-                >
-                  <div style={{ width: '100px' }}>
-                    <Input
-                      value={formData.start_date || ''}
-                      placeholder="MM/DD/YY"
-                      onChange={({ detail }) => {
-                        setFormData(prev => ({ ...prev, start_date: detail.value || null }));
-                      }}
-                      onBlur={() => {
-                        // Your existing onBlur logic
-                      }}
-                    />
-                  </div>
-                </FormField>
-                <FormField
-                  label="Milestone Due Date"
-                  errorText={formErrors.targeted_date}
-                  description={
-                    formData.start_date && formData.targeted_date && 
-                    (() => {
-                      try {
-                        const startDate = new Date(formData.start_date);
-                        const dueDate = new Date(formData.targeted_date);
-                        if (!isNaN(startDate.getTime()) && !isNaN(dueDate.getTime())) {
-                          const oneMonth = 30 * 24 * 60 * 60 * 1000; // approx 30 days in ms
-                          if (startDate < dueDate && dueDate.getTime() - startDate.getTime() < oneMonth) {
-                            return "Due Date is less than a month after Start Date";
-                          }
-                        }
-                        return undefined;
-                      } catch (error) {
-                        return undefined;
-                      }
-                    })()
-                  }
-                  constraintText="MM/DD/YY"
-                >
-                  <div style={{ width: '100px' }}>
-                    <Input
-                      value={formData.targeted_date || ''}
-                      placeholder="MM/DD/YY"
-                      onChange={({ detail }) => {
-                        setFormData(prev => ({ ...prev, targeted_date: detail.value || null }));
-                      }}
-                      onBlur={() => {
-                        // Your existing onBlur logic
-                      }}
-                    />
-                  </div>
-                </FormField>
-                <FormField label="Tech Milestone">
-                  <Checkbox
-                    checked={formData.is_tech}
-                    onChange={({ detail }) =>
-                      setFormData(prev => ({ ...prev, is_tech: detail.checked }))
-                    }
-                  >
-                    <TextContent>Technical Milestone</TextContent>
-                  </Checkbox>
-                </FormField>
-  
-                <FormField label="Currency">
-                  <Checkbox
-                    checked={formData.is_currency}
-                    onChange={({ detail }) =>
-                      setFormData(prev => ({ ...prev, is_currency: detail.checked }))
-                    }
-                  >
-                    <TextContent>Currency Milestone</TextContent>
-                  </Checkbox>
-                </FormField>
-              </SpaceBetween>
-  
-              {/* Third Row - Goal and KPI Target */}
-              <SpaceBetween direction="horizontal" size="l">
-                <FormField
-                  label="Goal"
-                  errorText={formErrors.milestone_goal}
-                  stretch={true}
-                >
-                  <Input
-                    value={formData.milestone_goal || ''}
-                    onChange={({ detail }) =>
-                      setFormData(prev => ({ ...prev, milestone_goal: detail.value || null }))
-                    }
-                  />
-                </FormField>
-  
-                <FormField
-                  label="Milestone KPI Target"
-                  errorText={formErrors.kpi_value}
-                >
-                  <div style={{ width: '150px' }}>
-                    <Input
-                      value={formData.kpi_value || ''}
-                      onChange={({ detail }) =>
-                        setFormData(prev => ({ ...prev, kpi_value: detail.value || null }))
-                      }
-                    />
-                  </div>
-                </FormField>
-              </SpaceBetween>
-              {/* Fourth Row - Input Type */}
+            </div>
+          </div>
+
+          {/* Second Row - Goal with label to the left */}
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <div style={{ width: '120px', flexShrink: 0 }}>
+              <Box fontWeight="bold">Goal</Box>
+            </div>
+            <div style={{ flex: '1' }}>
               <FormField
-                label="Input Type"
-                errorText={formErrors.input_type}
+                errorText={formErrors.milestone_goal}
+                stretch={true}
               >
-                <Select
-                  selectedOption={
-                    inputTypeOptions.find(option => option.value === formData.input_type) 
-                    || null
-                  }
+                <Input
+                  value={formData.milestone_goal || ''}
                   onChange={({ detail }) =>
-                    setFormData(prev => ({ 
-                      ...prev, 
-                      input_type: detail.selectedOption?.value || null 
-                    }))
+                    setFormData(prev => ({ ...prev, milestone_goal: detail.value || null }))
                   }
-                  options={inputTypeOptions}
                 />
               </FormField>
-            </SpaceBetween>
+            </div>
+          </div>
+
+      {/* Third Row - Type, KPI Target, Dates, and Checkboxes */}
+      <SpaceBetween direction="horizontal" size="l">
+        <FormField
+          label="Milestone Type"
+          errorText={formErrors.milestone_type}
+        >
+      <Input
+        value={formData.milestone_type || ''}
+        onChange={({ detail }) =>
+          setFormData(prev => ({ ...prev, milestone_type: detail.value || null }))
+        }
+      />
+    </FormField>
+
+    <FormField
+      label="Milestone KPI Target"
+      errorText={formErrors.kpi_value}
+    >
+      <div style={{ width: '150px' }}>
+        <Input
+          value={formData.kpi_value || ''}
+          onChange={({ detail }) =>
+            setFormData(prev => ({ ...prev, kpi_value: detail.value || null }))
+          }
+        />
+      </div>
+    </FormField>
+
+    <FormField
+      label="Start Date"
+      errorText={formErrors.start_date}
+      constraintText="MM/DD/YY"
+      description={
+        formData.start_date && formData.targeted_date && 
+        (() => {
+          try {
+            const startDate = new Date(formData.start_date);
+            const dueDate = new Date(formData.targeted_date);
+            if (!isNaN(startDate.getTime()) && !isNaN(dueDate.getTime())) {
+              const oneMonth = 30 * 24 * 60 * 60 * 1000; // approx 30 days in ms
+              if (startDate < dueDate && dueDate.getTime() - startDate.getTime() < oneMonth) {
+                return "Start Date is less than a month before Due Date";
+              }
+            }
+            return undefined;
+          } catch (error) {
+            return undefined;
+          }
+        })()
+      }
+    >
+      <div style={{ width: '100px' }}>
+        <Input
+          value={formData.start_date || ''}
+          placeholder="MM/DD/YY"
+          onChange={({ detail }) => {
+            setFormData(prev => ({ ...prev, start_date: detail.value || null }));
+          }}
+          onBlur={() => {
+            if (formData.start_date) {
+              const { isValid, formattedDate, errorMessage } = validateAndFormatDate(formData.start_date);
+              if (isValid) {
+                setFormData(prev => ({ ...prev, start_date: formattedDate }));
+                setFormErrors(prev => ({ ...prev, start_date: undefined }));
+              } else {
+                setFormErrors(prev => ({ ...prev, start_date: errorMessage }));
+              }
+            }
+          }}
+        />
+      </div>
+    </FormField>
+
+    <FormField
+      label="Due Date"
+      errorText={formErrors.targeted_date}
+      description={
+        formData.start_date && formData.targeted_date && 
+        (() => {
+          try {
+            const startDate = new Date(formData.start_date);
+            const dueDate = new Date(formData.targeted_date);
+            if (!isNaN(startDate.getTime()) && !isNaN(dueDate.getTime())) {
+              const oneMonth = 30 * 24 * 60 * 60 * 1000; // approx 30 days in ms
+              if (startDate < dueDate && dueDate.getTime() - startDate.getTime() < oneMonth) {
+                return "Due Date is less than a month after Start Date";
+              }
+            }
+            return undefined;
+          } catch (error) {
+            return undefined;
+          }
+        })()
+      }
+      constraintText="MM/DD/YY"
+    >
+      <div style={{ width: '100px' }}>
+        <Input
+          value={formData.targeted_date || ''}
+          placeholder="MM/DD/YY"
+          onChange={({ detail }) => {
+            setFormData(prev => ({ ...prev, targeted_date: detail.value || null }));
+          }}
+          onBlur={() => {
+            if (formData.targeted_date) {
+              const { isValid, formattedDate, errorMessage } = validateAndFormatDate(formData.targeted_date);
+              if (isValid) {
+                setFormData(prev => ({ ...prev, targeted_date: formattedDate }));
+                setFormErrors(prev => ({ ...prev, targeted_date: undefined }));
+              } else {
+                setFormErrors(prev => ({ ...prev, targeted_date: errorMessage }));
+              }
+            }
+          }}
+        />
+      </div>
+    </FormField>
+
+    <FormField label="Tech Milestone">
+      <Checkbox
+        checked={formData.is_tech}
+        onChange={({ detail }) =>
+          setFormData(prev => ({ ...prev, is_tech: detail.checked }))
+        }
+      >
+        <TextContent>Technical Milestone</TextContent>
+      </Checkbox>
+    </FormField>
+
+    <FormField label="Currency">
+      <Checkbox
+        checked={formData.is_currency}
+        onChange={({ detail }) =>
+          setFormData(prev => ({ ...prev, is_currency: detail.checked }))
+        }
+      >
+        <TextContent>Currency Milestone</TextContent>
+      </Checkbox>
+    </FormField>
+  </SpaceBetween>
+  {/* Fourth Row - Input Type */}
+</SpaceBetween>
+
           </Container>
   
           {/* Milestone Status History Table */}
@@ -747,9 +880,21 @@ function MilestoneUpdateForm() {
           />
   
           {/* Enter New Milestone Status Entry Section */}
+          {/* Enter New Milestone Status Entry Section */}
           <Container
             header={
-              <Header variant="h2">
+              <Header 
+                variant="h2"
+                actions={
+                  <Button 
+                    variant="primary" 
+                    onClick={handleSaveStatusUpdate}
+                    disabled={!formData.expected_kpi_value || !formData.latest_actuals}
+                  >
+                    Save Status Update
+                  </Button>
+                }
+              >
                 Enter New Milestone Status Entry
               </Header>
             }
@@ -766,7 +911,7 @@ function MilestoneUpdateForm() {
                     Today's date is automatically set
                   </Box>
                 </FormField>
-  
+
                 <FormField label="Expected KPI Value for Status Date">
                   <Input
                     value={formData.expected_kpi_value || ''}
@@ -775,7 +920,7 @@ function MilestoneUpdateForm() {
                     }
                   />
                 </FormField>
-  
+
                 <FormField label="Latest Actuals">
                   <Input
                     value={formData.latest_actuals || ''}
@@ -784,7 +929,7 @@ function MilestoneUpdateForm() {
                     }
                   />
                 </FormField>
-  
+
                 <FormField label="RAG Status">
                   <Select
                     selectedOption={
@@ -800,7 +945,7 @@ function MilestoneUpdateForm() {
                     options={ragTypeOptions}
                   />
                 </FormField>
-  
+
                 <FormField label="RAG Override">
                   <SpaceBetween direction="horizontal" size="xs" alignItems="center">
                     <Checkbox
@@ -821,7 +966,7 @@ function MilestoneUpdateForm() {
                   </SpaceBetween>
                 </FormField>
               </SpaceBetween>
-  
+
               <FormField
                 label="Notes"
                 description={
