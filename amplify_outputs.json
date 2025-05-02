@@ -26,9 +26,9 @@
     "unauthenticated_identities_enabled": true
   },
   "data": {
-    "url": "https://h2qagbm7vjb4tlk5ebnq2dmq4m.appsync-api.us-east-1.amazonaws.com/graphql",
+    "url": "https://esheqvoqgjfnbgmxy2dw7mks2u.appsync-api.us-east-1.amazonaws.com/graphql",
     "aws_region": "us-east-1",
-    "api_key": "da2-5b43ikxfhfch7nzszdnig4gkxa",
+    "api_key": "da2-zdw4py2yn5bbfddzhzqhyrk7me",
     "default_authorization_type": "API_KEY",
     "authorization_types": [
       "AMAZON_COGNITO_USER_POOLS",
@@ -138,6 +138,27 @@
               "isRequired": false,
               "attributes": []
             },
+            "is_baselined": {
+              "name": "is_baselined",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
+            "milestone_start_date": {
+              "name": "milestone_start_date",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "comments": {
+              "name": "comments",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
             "sca": {
               "name": "sca",
               "isArray": false,
@@ -150,6 +171,22 @@
                 "connectionType": "BELONGS_TO",
                 "targetNames": [
                   "scaId"
+                ]
+              }
+            },
+            "milestone_statuses": {
+              "name": "milestone_statuses",
+              "isArray": true,
+              "type": {
+                "model": "MilestoneStatus"
+              },
+              "isRequired": false,
+              "attributes": [],
+              "isArrayNullable": true,
+              "association": {
+                "connectionType": "HAS_MANY",
+                "associatedWith": [
+                  "milestoneId"
                 ]
               }
             },
@@ -309,6 +346,20 @@
               "isRequired": false,
               "attributes": []
             },
+            "contract_spcg_id": {
+              "name": "contract_spcg_id",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "primary_use_cases": {
+              "name": "primary_use_cases",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
             "milestones": {
               "name": "milestones",
               "isArray": true,
@@ -344,6 +395,128 @@
           },
           "syncable": true,
           "pluralName": "Scas",
+          "attributes": [
+            {
+              "type": "model",
+              "properties": {}
+            },
+            {
+              "type": "auth",
+              "properties": {
+                "rules": [
+                  {
+                    "allow": "public",
+                    "provider": "apiKey",
+                    "operations": [
+                      "create",
+                      "update",
+                      "delete",
+                      "read"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "primaryKeyInfo": {
+            "isCustomPrimaryKey": false,
+            "primaryKeyFieldName": "id",
+            "sortKeyFieldNames": []
+          }
+        },
+        "MilestoneStatus": {
+          "name": "MilestoneStatus",
+          "fields": {
+            "id": {
+              "name": "id",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true,
+              "attributes": []
+            },
+            "lastest_kpi_planned": {
+              "name": "lastest_kpi_planned",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "latest_status_actuals": {
+              "name": "latest_status_actuals",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "status_rag_status": {
+              "name": "status_rag_status",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "is_status_rag_override": {
+              "name": "is_status_rag_override",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
+            "status_notes": {
+              "name": "status_notes",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "updated_by": {
+              "name": "updated_by",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "milestoneId": {
+              "name": "milestoneId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "milestone": {
+              "name": "milestone",
+              "isArray": false,
+              "type": {
+                "model": "Milestone"
+              },
+              "isRequired": false,
+              "attributes": [],
+              "association": {
+                "connectionType": "BELONGS_TO",
+                "targetNames": [
+                  "milestoneId"
+                ]
+              }
+            },
+            "createdAt": {
+              "name": "createdAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            },
+            "updatedAt": {
+              "name": "updatedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            }
+          },
+          "syncable": true,
+          "pluralName": "MilestoneStatuses",
           "attributes": [
             {
               "type": "model",

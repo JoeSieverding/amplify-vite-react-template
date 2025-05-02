@@ -22,7 +22,13 @@ const schema = a.schema({
       is_rag_override: a.boolean(),
       updated_last_by: a.string(),
       scaId: a.string(),
-      sca: a.belongsTo('Sca', 'scaId')
+      // New fields added - fields are optional by default
+      is_baselined: a.boolean(),
+      milestone_start_date: a.string(),
+      comments: a.string(),
+      // Relationships
+      sca: a.belongsTo('Sca', 'scaId'),
+      milestone_statuses: a.hasMany('MilestoneStatus', 'milestoneId')
     })
     .authorization((allow) => [allow.publicApiKey()]),
   Sca: a
@@ -40,8 +46,25 @@ const schema = a.schema({
       contract_time_based_targets: a.string(),
       contract_primary_industry: a.string(),
       contract_overall_status: a.string(),
-      contract_theme: a.string() ,   
+      contract_theme: a.string(),
+      // New fields added - fields are optional by default
+      contract_spcg_id: a.string(),
+      primary_use_cases: a.string(),
+      // Relationships
       milestones: a.hasMany('Milestone', 'scaId')
+    })
+    .authorization((allow) => [allow.publicApiKey()]),
+  MilestoneStatus: a
+    .model({
+      lastest_kpi_planned: a.string(),
+      latest_status_actuals: a.string(),
+      status_rag_status: a.string(),
+      is_status_rag_override: a.boolean(),
+      status_notes: a.string(),
+      updated_by: a.string(),
+      milestoneId: a.string(),
+      // Relationship
+      milestone: a.belongsTo('Milestone', 'milestoneId')
     })
     .authorization((allow) => [allow.publicApiKey()]),
 });
