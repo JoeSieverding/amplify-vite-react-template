@@ -61,6 +61,7 @@ const schema = a.schema({
       status_rag_status: a.string(),
       is_status_rag_override: a.boolean(),
       status_notes: a.string(),
+      status_date: a.string(),
       updated_by: a.string(),
       milestoneId: a.string(),
       // Relationship

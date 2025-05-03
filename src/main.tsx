@@ -1,8 +1,6 @@
 import { createRoot } from "react-dom/client";
 import { Authenticator } from '@aws-amplify/ui-react';
 import App from "./App";
-import { Amplify } from "aws-amplify";
-import outputs from "../amplify_outputs.json"; // This should contain your production configuration
 import '@aws-amplify/ui-react/styles.css';
 import TopNav from "./components/Common/TopNav";
 import "@cloudscape-design/global-styles/index.css"
@@ -10,6 +8,7 @@ import { ThemeProvider } from '@aws-amplify/ui-react';
 import { BrowserRouter } from "react-router-dom";
 import './utils/pdfWorker';
 import { signOut } from 'aws-amplify/auth';
+import { configureAmplifyProduction } from "./config/amplify-config";
 
 // Clear any existing auth state before configuring Amplify
 async function clearAuthState() {
@@ -26,8 +25,7 @@ async function initializeApp() {
   await clearAuthState();
   
   // Always use the production configuration
-  console.log('Configuring Amplify with production backend');
-  Amplify.configure(outputs);
+  configureAmplifyProduction();
   
   // Render the app
   const container = document.getElementById("root");
