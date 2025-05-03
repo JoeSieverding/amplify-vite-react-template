@@ -18,7 +18,8 @@ import {
   Table,
   Pagination,
   StatusIndicator,
-  Modal
+  Modal,
+  Alert
 } from "@cloudscape-design/components";
 
 const client = generateClient<Schema>();
@@ -174,6 +175,19 @@ function MilestoneUpdateForm() {
   const [showBaselineModal, setShowBaselineModal] = useState(false);
   const [baselineConfirmationText, setBaselineConfirmationText] = useState("");
   const { item, sca } = location.state as LocationState;
+  const [showAlert, setShowAlert] = useState(false);
+  const [alertType, setAlertType] = useState<"success" | "error" | "warning" | "info">("success");
+  const [alertMessage, setAlertMessage] = useState("");
+  const showNotification = (type: "success" | "error" | "warning" | "info", message: string) => {
+    setAlertType(type);
+    setAlertMessage(message);
+    setShowAlert(true);
+    
+    // Automatically hide the alert after 5 seconds
+    setTimeout(() => {
+      setShowAlert(false);
+    }, 5000);
+  };
   // Store the original milestone data for comparison
   const originalMilestoneData = useMemo(() => ({
     milestone_type: item.milestone_type,
@@ -187,7 +201,8 @@ function MilestoneUpdateForm() {
     latest_actuals: item.latest_actuals,
     calc_rag_type: item.calc_rag_type,
     is_rag_override: Boolean(item.is_rag_override),
-    start_date: null
+    milestone_start_date: item.milestone_start_date,
+    comments: item.comments
   }), [item]); // Only recreate when item changes
   const [milestoneData, setMilestoneData] = useState<MilestoneFormData>({
     id: item.id,
@@ -279,10 +294,10 @@ function MilestoneUpdateForm() {
       setShowBaselineModal(false);
       setBaselineConfirmationText("");
       
-      alert("Milestone has been baselined successfully.");
+      showNotification("success", "Milestone has been baselined successfully.");
     } catch (error) {
       console.error("Error baselining milestone:", error);
-      alert("Failed to baseline milestone.");
+      showNotification("error", "Failed to baseline milestone.");
     } finally {
       setIsLoading(false);
     }
@@ -405,6 +420,26 @@ const isStatusFormValid = useCallback(() => {
     return Object.keys(errors).length === 0;
   }, [milestoneData, validateFormFields, fieldsWithData]);
   
+  function areValuesEqual<T>(a: T | null | undefined, b: T | null | undefined): boolean {
+    // If both are null or undefined, they're equal
+    if (a == null && b == null) return true;
+    
+    // If only one is null or undefined, they're not equal
+    if (a == null || b == null) return false;
+    
+    // For booleans
+    if (typeof a === 'boolean' && typeof b === 'boolean') {
+      return a === b;
+    }
+    
+    // For strings, compare after trimming
+    if (typeof a === 'string' && typeof b === 'string') {
+      return a.trim() === b.trim();
+    }
+    
+    // For other types, direct comparison
+    return a === b;
+  }
   const handleSaveStatusUpdate = async () => {
     // Use the dedicated status validation function
     if (!validateStatusForm()) {
@@ -455,10 +490,10 @@ const isStatusFormValid = useCallback(() => {
       });
       
       // Show success message
-      alert('Status update saved successfully');
+      showNotification("success", "Milestone saved successfully.");
     } catch (error) {
       console.error('Error saving status update:', error);
-      alert('Failed to save status update');
+      showNotification("error", "Milestone failed to save.");
     } finally {
       setIsLoading(false);
     }
@@ -491,11 +526,11 @@ const handleSubmitMilestone = async () => {
       comments: milestoneData.comments
     });
     // Show success message
-    alert('Milestone updated successfully');
-    navigate('/scamilestonelist', { state: { sca } });
+    showNotification("success", "Milestone updated successfully.");
+    // navigate('/scamilestonelist', { state: { sca } });
   } catch (error) {
     console.error('Error updating milestone:', error);
-    alert('Failed to update milestone');
+    showNotification("error", "Milestone failed to update.");
   } finally {
     setIsLoading(false);
   }
@@ -652,21 +687,28 @@ const statusHistoryColumns = [
   // Check for changes in milestone summary data
 // Check for changes in milestone summary data
 useEffect(() => {
-  const hasMilestoneChanges = 
-    milestoneData.milestone_type !== originalMilestoneData.milestone_type ||
-    milestoneData.milestone_description !== originalMilestoneData.milestone_description ||
-    milestoneData.is_tech !== originalMilestoneData.is_tech ||
-    milestoneData.is_currency !== originalMilestoneData.is_currency ||
-    milestoneData.kpi_value !== originalMilestoneData.kpi_value ||
-    milestoneData.targeted_date !== originalMilestoneData.targeted_date ||
-    milestoneData.input_type !== originalMilestoneData.input_type ||
-    milestoneData.milestone_goal !== originalMilestoneData.milestone_goal ||
-    milestoneData.latest_actuals !== originalMilestoneData.latest_actuals ||
-    milestoneData.calc_rag_type !== originalMilestoneData.calc_rag_type ||
-    milestoneData.is_rag_override !== originalMilestoneData.is_rag_override ||
-    milestoneData.milestone_start_date !== originalMilestoneData.start_date;
+  const changes = {
+    milestone_type: !areValuesEqual<string>(milestoneData.milestone_type, originalMilestoneData.milestone_type),
+    milestone_description: !areValuesEqual<string>(milestoneData.milestone_description, originalMilestoneData.milestone_description),
+    is_tech: !areValuesEqual<boolean>(milestoneData.is_tech, originalMilestoneData.is_tech),
+    is_currency: !areValuesEqual<boolean>(milestoneData.is_currency, originalMilestoneData.is_currency),
+    kpi_value: !areValuesEqual<string>(milestoneData.kpi_value, originalMilestoneData.kpi_value),
+    targeted_date: !areValuesEqual<string>(milestoneData.targeted_date, originalMilestoneData.targeted_date),
+    input_type: !areValuesEqual<string>(milestoneData.input_type, originalMilestoneData.input_type),
+    milestone_goal: !areValuesEqual<string>(milestoneData.milestone_goal, originalMilestoneData.milestone_goal),
+    latest_actuals: !areValuesEqual<string>(milestoneData.latest_actuals, originalMilestoneData.latest_actuals),
+    calc_rag_type: !areValuesEqual<string>(milestoneData.calc_rag_type, originalMilestoneData.calc_rag_type),
+    is_rag_override: !areValuesEqual<boolean>(milestoneData.is_rag_override, originalMilestoneData.is_rag_override),
+    milestone_start_date: !areValuesEqual<string>(milestoneData.milestone_start_date, originalMilestoneData.milestone_start_date),
+    comments: !areValuesEqual<string>(milestoneData.comments, originalMilestoneData.comments)
+  };
   
-  setHasChanges(hasMilestoneChanges);
+  const hasMilestoneChanges = Object.values(changes).some(changed => changed);
+  
+  // Only update if the value has actually changed
+  if (hasChanges !== hasMilestoneChanges) {
+    setHasChanges(hasMilestoneChanges);
+  }
 }, [
   milestoneData.milestone_type,
   milestoneData.milestone_description,
@@ -680,14 +722,11 @@ useEffect(() => {
   milestoneData.calc_rag_type,
   milestoneData.is_rag_override,
   milestoneData.milestone_start_date,
-  originalMilestoneData
+  milestoneData.comments,
+  originalMilestoneData,
+  hasChanges
 ]);
-  //const inputTypeOptions = [
-  //  { value: "percentage", label: "Percentage" },
-  //  { value: "currency", label: "Currency" },
-  //  { value: "number", label: "Number" },
-  //  { value: "boolean", label: "Boolean" }
-  //];
+
   const ragTypeOptions = [
     { value: "Green", label: "Green" },
     { value: "Amber", label: "Amber" },
@@ -735,6 +774,7 @@ useEffect(() => {
     
     setFormErrors({});
     setHasChanges(false);
+    showNotification("success", "Milestone reset to previous values.");
   };
   
 
@@ -746,6 +786,15 @@ useEffect(() => {
     <Form>
       <Container>
         <SpaceBetween size="xs">
+        {showAlert && (
+        <Alert
+          type={alertType}
+          dismissible
+          onDismiss={() => setShowAlert(false)}
+        >
+          {alertMessage}
+        </Alert>
+      )}
         <Header>
           {milestoneData.is_baselined ? (
             <SpaceBetween direction="horizontal" size="xs" alignItems="center">
@@ -770,7 +819,7 @@ useEffect(() => {
                     {!milestoneData.is_baselined && (
                       <Button 
                         onClick={handleBaseline}
-                        disabled={isLoading}
+                        disabled={isLoading || hasChanges}
                       >
                         Baseline
                       </Button>
@@ -793,7 +842,7 @@ useEffect(() => {
                       loading={isLoading}
                       disabled={!hasChanges}
                     >
-                      Submit
+                      Save
                     </Button>
                   </SpaceBetween>
                 }
@@ -904,19 +953,20 @@ useEffect(() => {
           value={milestoneData.milestone_start_date || ''}
           placeholder="MM/DD/YY"
           onChange={({ detail }) => {
-            setMilestoneData(prev => ({ ...prev, start_date: detail.value || null }));
-          }}
+            setMilestoneData(prev => ({ ...prev, milestone_start_date: detail.value || null }));
+          }}          
           onBlur={() => {
             if (milestoneData.milestone_start_date) {
               const { isValid, formattedDate, errorMessage } = validateAndFormatDate(milestoneData.milestone_start_date);
               if (isValid) {
-                setMilestoneData(prev => ({ ...prev, start_date: formattedDate }));
+                setMilestoneData(prev => ({ ...prev, milestone_start_date: formattedDate }));
                 setFormErrors(prev => ({ ...prev, start_date: undefined }));
               } else {
                 setFormErrors(prev => ({ ...prev, start_date: errorMessage }));
               }
             }
           }}
+          
           disabled={isFormDisabled()}
         />
       </div>
@@ -992,7 +1042,32 @@ useEffect(() => {
       </Checkbox>
     </FormField>
   </SpaceBetween>
-  {/* Fourth Row - Input Type */}
+  {/* Comments Field - Always Editable */}
+<div style={{ display: 'flex', alignItems: 'flex-start', marginTop: '20px' }}>
+  <div style={{ width: '120px', flexShrink: 0 }}>
+    <Box fontWeight="bold">Comments</Box>
+  </div>
+  <div style={{ flex: '1' }}>
+    <FormField
+      errorText={formErrors.comments}
+      stretch={true}
+    >
+      <Textarea
+        value={milestoneData.comments || ''}
+        onChange={({ detail }) =>
+          setMilestoneData(prev => ({ ...prev, comments: detail.value || null }))
+        }
+        rows={3}
+        // Note: No disabled prop here, so it's always editable
+      />
+    </FormField>
+    {milestoneData.is_baselined && (
+      <Box color="text-status-info" padding={{ top: "xxs" }} fontSize="body-s">
+        Comments can be updated even when milestone is baselined
+      </Box>
+    )}
+  </div>
+</div>
 </SpaceBetween>
 
 </Container>
