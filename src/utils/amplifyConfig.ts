@@ -9,5 +9,5 @@ export const configureAmplify = () => {
 
 // Helper function to check if we're using production
 export const isProduction = () => {
-  return outputs.data.url.includes('h2qagbm7vjb4tlk5ebnq2dmq4m');
+  return true; // Always return true to force production mode
 };

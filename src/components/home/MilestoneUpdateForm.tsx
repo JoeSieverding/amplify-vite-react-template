@@ -17,7 +17,8 @@ import {
   Textarea,
   Table,
   Pagination,
-  StatusIndicator
+  StatusIndicator,
+  Modal
 } from "@cloudscape-design/components";
 
 const client = generateClient<Schema>();
@@ -166,9 +167,12 @@ const validateAndFormatDate = (dateString: string | null | undefined): {
     errorMessage: undefined
   };
 };
+
 function MilestoneUpdateForm() {
   const location = useLocation();
   const navigate = useNavigate();
+  const [showBaselineModal, setShowBaselineModal] = useState(false);
+  const [baselineConfirmationText, setBaselineConfirmationText] = useState("");
   const { item, sca } = location.state as LocationState;
   // Store the original milestone data for comparison
   const originalMilestoneData = useMemo(() => ({
@@ -247,7 +251,106 @@ function MilestoneUpdateForm() {
   const [pageSize] = useState(10);
   const [sortingColumn, setSortingColumn] = useState<{ id: string, sortingField: string }>({ id: "status_date", sortingField: "status_date" });
   const [sortingDescending, setSortingDescending] = useState(true);
-
+  // Add this function to handle the baseline action
+  const handleBaseline = () => {
+    setShowBaselineModal(true);
+    setBaselineConfirmationText("");
+  };
+  const handleConfirmBaseline = async () => {
+    if (baselineConfirmationText.toLowerCase() !== 'baseline') {
+      return;
+    }
+    
+    setIsLoading(true);
+    try {
+      // Update the milestone to set is_baselined to true
+      await client.models.Milestone.update({
+        id: milestoneData.id,
+        is_baselined: true
+      });
+      
+      // Update local state
+      setMilestoneData(prev => ({
+        ...prev,
+        is_baselined: true
+      }));
+      
+      // Close the modal and reset the confirmation text
+      setShowBaselineModal(false);
+      setBaselineConfirmationText("");
+      
+      alert("Milestone has been baselined successfully.");
+    } catch (error) {
+      console.error("Error baselining milestone:", error);
+      alert("Failed to baseline milestone.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // Add this helper function to determine if form fields should be disabled
+const isFormDisabled = () => {
+  return milestoneData.is_baselined === true;
+};
+const getMilestoneSummaryHeader = () => {
+    if (!milestoneData.calc_rag_type) {
+      return "Milestone Summary - No status entries";
+    } else {
+      return (
+        <SpaceBetween direction="horizontal" size="xs" alignItems="center">
+          <span>Milestone Summary  </span>
+          <StatusIndicator type={getRagStatusType(milestoneData.calc_rag_type)}>
+            {milestoneData.calc_rag_type}
+          </StatusIndicator>
+        </SpaceBetween>
+      );
+    }
+  };
+  // Add this function inside the MilestoneUpdateForm component
+const isStatusFormValid = useCallback(() => {
+    // Check if required fields are filled
+    if (!statusData.expected_kpi_value || !statusData.latest_actuals || !statusData.status_rag_status) {
+      return false;
+    }
+    
+    // Check notes length based on RAG override
+    const notesContent = statusData.notes || statusData.status_notes || '';
+    if (statusData.is_status_rag_override) {
+      // Minimum 20 characters required for RAG override
+      return notesContent.length >= 20;
+    } else {
+      // Minimum 10 characters required otherwise
+      return notesContent.length >= 10;
+    }
+  }, [
+    statusData.expected_kpi_value, 
+    statusData.latest_actuals, 
+    statusData.status_rag_status,
+    statusData.notes,
+    statusData.status_notes,
+    statusData.is_status_rag_override
+  ]);
+  const updateMilestoneRagStatus = async (ragStatus: string | null) => {
+    if (!item?.id) return;
+    
+    try {
+      // Update only the calc_rag_type field in the milestone table
+      await client.models.Milestone.update({
+        id: item.id,
+        calc_rag_type: ragStatus
+      });
+      
+      // Update the local state to reflect the change
+      setMilestoneData(prev => ({
+        ...prev,
+        calc_rag_type: ragStatus
+      }));
+      
+      console.log('Milestone RAG status updated successfully');
+    } catch (error) {
+      console.error('Error updating milestone RAG status:', error);
+    }
+  };
   const validateMilestoneForm = useCallback(() => {
     const errors = validateFormFields();
     
@@ -452,17 +555,20 @@ const statusHistoryColumns = [
   {
     id: "status_date",
     header: "Date",
-    cell: (item: MilestoneStatusType) => formatDate(item.createdAt)
+    cell: (item: MilestoneStatusType) => formatDate(item.createdAt),
+    width: 100
   },
   {
     id: "lastest_kpi_planned",
     header: "Expected KPI",
-    cell: (item: MilestoneStatusType) => item.lastest_kpi_planned
+    cell: (item: MilestoneStatusType) => item.lastest_kpi_planned,
+    width: 120
   },
   {
     id: "latest_status_actuals",
     header: "Actuals",
-    cell: (item: MilestoneStatusType) => item.latest_status_actuals
+    cell: (item: MilestoneStatusType) => item.latest_status_actuals,
+    width: 120
   },
   {
     id: "status_rag_status",
@@ -471,17 +577,20 @@ const statusHistoryColumns = [
       <StatusIndicator type={getRagStatusType(item.status_rag_status)}>
         {item.status_rag_status || "Not set"}
       </StatusIndicator>
-    )
-  },
-  {
-    id: "status_notes",
-    header: "Notes",
-    cell: (item: MilestoneStatusType) => item.status_notes
+    ),
+    width: 100
   },
   {
     id: "updated_by",
     header: "Updated By",
-    cell: (item: MilestoneStatusType) => item.updated_by
+    cell: (item: MilestoneStatusType) => item.updated_by,
+    width: 150
+  },
+  {
+    id: "status_notes",
+    header: "Notes",
+    cell: (item: MilestoneStatusType) => item.status_notes,
+    width: 300
   }
 ];
 
@@ -637,9 +746,19 @@ useEffect(() => {
     <Form>
       <Container>
         <SpaceBetween size="xs">
-          <Header>
-            Update Milestone
-          </Header>
+        <Header>
+          {milestoneData.is_baselined ? (
+            <SpaceBetween direction="horizontal" size="xs" alignItems="center">
+              <span>Milestone Baselined</span>
+              <StatusIndicator type="success">Baselined</StatusIndicator>
+            </SpaceBetween>
+          ) : (
+            <SpaceBetween direction="horizontal" size="xs" alignItems="center">
+              <span>Update Milestone</span>
+              <StatusIndicator type="error">Not Baselined</StatusIndicator>
+            </SpaceBetween>
+          )}
+        </Header>
   
           {/* Milestone Summary Section */}
           <Container
@@ -648,6 +767,14 @@ useEffect(() => {
                 variant="h2"
                 actions={
                   <SpaceBetween direction="horizontal" size="xs">
+                    {!milestoneData.is_baselined && (
+                      <Button 
+                        onClick={handleBaseline}
+                        disabled={isLoading}
+                      >
+                        Baseline
+                      </Button>
+                    )}
                     <Button 
                       onClick={handleReset} 
                       disabled={!hasChanges}
@@ -671,7 +798,7 @@ useEffect(() => {
                   </SpaceBetween>
                 }
               >
-                Milestone Summary
+                {getMilestoneSummaryHeader()}
               </Header>
             }
           >
@@ -691,6 +818,7 @@ useEffect(() => {
                   onChange={({ detail }) =>
                     setMilestoneData(prev => ({ ...prev, milestone_description: detail.value || null }))
                   }
+                  disabled={isFormDisabled()}
                 />
               </FormField>
             </div>
@@ -711,6 +839,7 @@ useEffect(() => {
                   onChange={({ detail }) =>
                     setMilestoneData(prev => ({ ...prev, milestone_goal: detail.value || null }))
                   }
+                  disabled={isFormDisabled()}
                 />
               </FormField>
             </div>
@@ -727,12 +856,14 @@ useEffect(() => {
         onChange={({ detail }) =>
           setMilestoneData(prev => ({ ...prev, milestone_type: detail.value || null }))
         }
+        disabled={isFormDisabled()}
       />
     </FormField>
 
     <FormField
       label="Milestone KPI Target"
       errorText={formErrors.kpi_value}
+      constraintText={milestoneData.input_type ? milestoneData.input_type.charAt(0).toUpperCase() + milestoneData.input_type.slice(1) : ""}
     >
       <div style={{ width: '150px' }}>
         <Input
@@ -740,6 +871,7 @@ useEffect(() => {
           onChange={({ detail }) =>
             setMilestoneData(prev => ({ ...prev, kpi_value: detail.value || null }))
           }
+          disabled={isFormDisabled()}
         />
       </div>
     </FormField>
@@ -785,6 +917,7 @@ useEffect(() => {
               }
             }
           }}
+          disabled={isFormDisabled()}
         />
       </div>
     </FormField>
@@ -830,6 +963,7 @@ useEffect(() => {
               }
             }
           }}
+          disabled={isFormDisabled()}
         />
       </div>
     </FormField>
@@ -840,6 +974,7 @@ useEffect(() => {
         onChange={({ detail }) =>
           setMilestoneData(prev => ({ ...prev, is_tech: detail.checked }))
         }
+        disabled={isFormDisabled()}
       >
         <TextContent>Technical Milestone</TextContent>
       </Checkbox>
@@ -851,6 +986,7 @@ useEffect(() => {
         onChange={({ detail }) =>
           setMilestoneData(prev => ({ ...prev, is_currency: detail.checked }))
         }
+        disabled={isFormDisabled()}
       >
         <TextContent>Currency Milestone</TextContent>
       </Checkbox>
@@ -921,7 +1057,7 @@ useEffect(() => {
                   <Button 
                     variant="primary" 
                     onClick={handleSaveStatusUpdate}
-                    disabled={!statusData.expected_kpi_value || !statusData.latest_actuals}
+                    disabled={!isStatusFormValid()}
                   >
                     Save Status Update
                   </Button>
@@ -968,12 +1104,18 @@ useEffect(() => {
                       ragTypeOptions.find(option => option.value === statusData.status_rag_status) 
                       || null
                     }
-                    onChange={({ detail }) =>  
+                    onChange={({ detail }) => {
+                      const newRagStatus = detail.selectedOption?.value || null;
+                      
+                      // Update the status form data
                       setStatusData(prev => ({ 
                         ...prev, 
-                        calc_rag_type: detail.selectedOption?.value || null 
-                      }))
-                    }
+                        status_rag_status: newRagStatus 
+                      }));
+                      
+                      // Also update the milestone table with just the RAG status
+                      updateMilestoneRagStatus(newRagStatus);
+                    }}
                     options={ragTypeOptions}
                   />
                 </FormField>
@@ -1019,10 +1161,43 @@ useEffect(() => {
           </Container>
         </SpaceBetween>
       </Container>
+      {/* Baseline Confirmation Modal */}
+      <Modal
+        visible={showBaselineModal}
+        onDismiss={() => setShowBaselineModal(false)}
+        header="Confirm Baseline"
+        closeAriaLabel="Close dialog"
+        footer={
+          <Box float="right">
+            <SpaceBetween direction="horizontal" size="xs">
+              <Button variant="link" onClick={() => setShowBaselineModal(false)}>
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                onClick={handleConfirmBaseline}
+                disabled={baselineConfirmationText.toLowerCase() !== 'baseline'}
+              >
+                Baseline
+              </Button>
+            </SpaceBetween>
+          </Box>
+        }
+      >
+        <SpaceBetween size="m">
+          <Box>
+            <p>Once a milestone is baselined, milestone data cannot be changed.</p>
+            <p>Type 'baseline' to confirm.</p>
+          </Box>
+          <Input
+            value={baselineConfirmationText}
+            onChange={({ detail }) => setBaselineConfirmationText(detail.value)}
+            placeholder="Type 'baseline' to confirm"
+          />
+        </SpaceBetween>
+      </Modal>
     </Form>
   );
-  
-  
 }
 
 export default MilestoneUpdateForm;
