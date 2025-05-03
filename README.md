@@ -1,85 +1,96 @@
-## SCA Suite - Strategic Contract Agreement Management
+# SCA Suite
 
-SCA Suite is a comprehensive application for managing Strategic Contract Agreements (SCAs) between AWS and partners. It provides tools for tracking contracts, milestones, and performance metrics.
+A React application built with Amplify Gen 2, Vite, and TypeScript.
 
-## Overview
-
-This application helps AWS teams manage strategic partnerships by providing a centralized platform for contract management, milestone tracking, and analytics. Built with React, Vite, and AWS Amplify, it offers a responsive and intuitive interface for managing complex partner relationships.
-
-## Environment Switching
+## Environment Setup
 
 This application supports two environments:
 
-- **Sandbox**: Development/testing environment
-- **Production**: Production environment
+- **Sandbox**: For local development with a sandbox backend
+- **Production**: For connecting to the production backend
 
-### How to Switch Environments
+## Running the Application
 
-You can switch between environments using the provided script:
+### Development Mode (Sandbox)
 
-```bash
-# Switch to production environment
-node switch-env.cjs prod
-
-# Switch to sandbox environment
-node switch-env.cjs sandbox
-```
-
-After switching environments, you'll need to restart your application for the changes to take effect.
-
-## Features
-
-- **Contract Management**: Create, view, and update Strategic Contract Agreements with partners.
-- **Milestone Tracking**: Define and track technical and business milestones with RAG status indicators.
-- **Analytics**: Analyze contract performance and milestone completion through interactive dashboards.
-- **ChatBot Integration**: Import SCA data and analyze metrics using AI-powered chatbots.
-- **Authentication**: Secure access with Amazon Cognito authentication limited to @amazon.com email addresses.
-
-## Development
+To run the application in development mode with the sandbox backend:
 
 ```bash
+# Using npm scripts with cross-env
 npm run dev
+
+# For Windows users (if cross-env has issues)
+npm run dev:win:sandbox
 ```
 
-This will start the development server.
+This will start the application with the sandbox environment configuration.
 
-## Production Deployment
+### Production Mode
+
+To run the application locally but connected to the production backend:
+
+```bash
+# Using npm scripts with cross-env
+npm run dev:prod
+
+# For Windows users (if cross-env has issues)
+npm run dev:win:prod
+```
+
+This will start the application with the production environment configuration.
+
+## Switching Environments
+
+You can also switch between environments using the following commands:
+
+```bash
+# Switch to sandbox environment
+npm run switch:sandbox
+
+# Switch to production environment
+npm run switch:prod
+```
+
+These commands will update the `amplify_outputs.json` file with the appropriate configuration.
+
+## Building for Production
+
+To build the application for production:
 
 ```bash
 npm run build
 ```
 
-## Application Structure
+This will create a production build in the `dist` directory.
 
-- **Authentication**: Uses AWS Cognito with custom validation for @amazon.com emails.
-- **Data Model**: Includes Sca and Milestone models with relationships between them.
-- **UI Components**: Built with Cloudscape Design components for a consistent AWS look and feel.
-- **Routing**: React Router for navigation between different views.
-- **State Management**: React hooks for local state management.
-- **API Integration**: AWS AppSync GraphQL API for data operations.
+## Additional Scripts
 
-## Configuration Files
+- `npm run build:sandbox`: Build the application with sandbox configuration
+- `npm run lint`: Run ESLint to check for code issues
+- `npm run preview`: Preview the built application locally
 
-- `amplify_outputs.json`: The active configuration file used by the application
-- `amplify_outputs.sandbox.json`: Sandbox environment configuration
-- `amplify_outputs.prod.json`: Production environment configuration
+## Troubleshooting
 
-## API Endpoints
+If you encounter issues with the `cross-env` package, try the following:
 
-- Sandbox: https://esheqvoqgjfnbgmxy2dw7mks2u.appsync-api.us-east-1.amazonaws.com/graphql
-- Production: https://h2qagbm7vjb4tlk5ebnq2dmq4m.appsync-api.us-east-1.amazonaws.com/graphql
+1. Make sure you have installed the dependencies:
+   ```bash
+   npm install
+   ```
 
-## Getting Started
+2. Use the Windows-specific scripts:
+   ```bash
+   npm run dev:win:sandbox
+   # or
+   npm run dev:win:prod
+   ```
 
-1. Clone the repository
-2. Install dependencies: `npm install`
-3. Start the development server: `npm run dev`
-4. Access the application at http://localhost:5173
-
-## Security
-
-See [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications) for more information.
-
-## License
-
-This application is licensed under the MIT-0 License. See the LICENSE file for details.
+3. Set the environment variables manually:
+   ```bash
+   # On Windows
+   set VITE_ENV=sandbox
+   npx vite
+   
+   # On macOS/Linux
+   VITE_ENV=sandbox npx vite
+   ```

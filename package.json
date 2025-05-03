@@ -4,12 +4,18 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build && shx cp node_modules/pdfjs-dist/build/pdf.worker.js dist/",
+    "dev": "cross-env VITE_ENV=sandbox vite",
+    "dev:prod": "cross-env VITE_ENV=production vite",
+    "dev:win:sandbox": "run-dev-sandbox.bat",
+    "dev:win:prod": "run-dev-prod.bat",
+    "build": "cross-env VITE_ENV=production tsc && vite build && shx cp node_modules/pdfjs-dist/build/pdf.worker.js dist/",
+    "build:sandbox": "cross-env VITE_ENV=sandbox tsc && vite build && shx cp node_modules/pdfjs-dist/build/pdf.worker.js dist/",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "prepare-pdf-worker": "shx mkdir -p public && shx cp node_modules/pdfjs-dist/build/pdf.worker.js public/",
-    "postinstall": "npm run prepare-pdf-worker || exit 0"
+    "postinstall": "npm run prepare-pdf-worker || exit 0",
+    "switch:prod": "node switch-env.js prod",
+    "switch:sandbox": "node switch-env.js sandbox"
   },
   "dependencies": {
     "@aws-amplify/ui-react": "^6.11.1",
@@ -44,6 +50,7 @@
     "aws-cdk-lib": "^2.138.0",
     "constructs": "^10.3.0",
     "copyfiles": "^2.4.1",
+    "cross-env": "^7.0.3",
     "esbuild": "^0.20.2",
     "eslint": "^8.57.0",
     "eslint-plugin-react-hooks": "^4.6.0",

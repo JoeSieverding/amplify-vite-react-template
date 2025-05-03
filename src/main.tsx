@@ -8,7 +8,7 @@ import { ThemeProvider } from '@aws-amplify/ui-react';
 import { BrowserRouter } from "react-router-dom";
 import './utils/pdfWorker';
 import { signOut } from 'aws-amplify/auth';
-import { configureAmplifyProduction } from "./config/amplify-config";
+import { configureAmplify } from "./config/amplify-config";
 
 // Clear any existing auth state before configuring Amplify
 async function clearAuthState() {
@@ -24,8 +24,8 @@ async function clearAuthState() {
 async function initializeApp() {
   await clearAuthState();
   
-  // Always use the production configuration
-  configureAmplifyProduction();
+  // Configure Amplify based on the environment setting
+  configureAmplify();
   
   // Render the app
   const container = document.getElementById("root");

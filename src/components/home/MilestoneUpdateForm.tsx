@@ -2,6 +2,7 @@ import { useCallback, useState, useEffect, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import type { Schema } from "../../../amplify/data/resource";
 import { generateClient } from "aws-amplify/data";
+import { useAuthenticator } from '@aws-amplify/ui-react';
 import {
   SpaceBetween,
   Button,
@@ -170,6 +171,7 @@ const validateAndFormatDate = (dateString: string | null | undefined): {
 };
 
 function MilestoneUpdateForm() {
+  const { user } = useAuthenticator((context) => [context.user]);
   const location = useLocation();
   const navigate = useNavigate();
   const [showBaselineModal, setShowBaselineModal] = useState(false);
@@ -178,6 +180,9 @@ function MilestoneUpdateForm() {
   const [showAlert, setShowAlert] = useState(false);
   const [alertType, setAlertType] = useState<"success" | "error" | "warning" | "info">("success");
   const [alertMessage, setAlertMessage] = useState("");
+  const getUserEmail = useCallback(() => {
+    return user?.signInDetails?.loginId || "Unknown User";
+  }, [user]);
   const showNotification = (type: "success" | "error" | "warning" | "info", message: string) => {
     setAlertType(type);
     setAlertMessage(message);
@@ -217,7 +222,7 @@ function MilestoneUpdateForm() {
     latest_actuals: item.latest_actuals,
     calc_rag_type: item.calc_rag_type,
     is_rag_override: Boolean(item.is_rag_override),
-    updated_last_by: item.updated_last_by,
+    updated_last_by: getUserEmail(),
     scaId: item.scaId || sca.id,
     is_baselined: Boolean(item.is_baselined),
     milestone_start_date: item.milestone_start_date,
@@ -249,7 +254,7 @@ function MilestoneUpdateForm() {
     status_rag_status: null,
     is_status_rag_override: false,
     status_notes: null,
-    updated_by: null,
+    updated_by: getUserEmail(),
     notes: null,
     milestoneId: item.id,
     id: ""  
@@ -449,6 +454,9 @@ const isStatusFormValid = useCallback(() => {
     setIsLoading(true);
     
     try {
+      // Get the current user's email
+      const currentUserEmail = getUserEmail();
+      
       // Create a new status entry in the MilestoneStatus table
       const result = await client.models.MilestoneStatus.create({
         milestoneId: milestoneData.id,
@@ -457,7 +465,7 @@ const isStatusFormValid = useCallback(() => {
         status_rag_status: statusData.status_rag_status,
         is_status_rag_override: statusData.is_status_rag_override,
         status_notes: statusData.status_notes || statusData.notes,
-        updated_by: statusData.updated_by || 'Current User'
+        updated_by: currentUserEmail // Use the current user's email
       });
       
       // Extract the created item from the result and convert it
@@ -474,7 +482,7 @@ const isStatusFormValid = useCallback(() => {
         status_rag_status: null,
         is_status_rag_override: false,
         status_notes: null,
-        updated_by: null,
+        updated_by: currentUserEmail, // Keep the current user's email,
         notes: null,
         milestoneId: milestoneData.id,
         id: ""
@@ -520,7 +528,7 @@ const handleSubmitMilestone = async () => {
       latest_actuals: milestoneData.latest_actuals,
       calc_rag_type: milestoneData.calc_rag_type,
       is_rag_override: milestoneData.is_rag_override,
-      updated_last_by: milestoneData.updated_last_by,
+      updated_last_by: getUserEmail(),
       is_baselined: milestoneData.is_baselined,
       milestone_start_date: milestoneData.milestone_start_date,
       comments: milestoneData.comments

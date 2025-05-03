@@ -4,5 +4,10 @@ export const apiConfig = {
   apiKey: "da2-5b43ikxfhfch7nzszdnig4gkxa"
 };
 
-// Always use production backend
-export const useProductionBackend = true;
+// Determine if we should use production backend based on environment variable
+export const useProductionBackend = (): boolean => {
+  // Check for environment variable set by npm script
+  const envSetting = import.meta.env.VITE_ENV;
+  console.log(`Current environment: ${envSetting || 'not set (defaulting to production)'}`);
+  return envSetting !== 'sandbox';
+};

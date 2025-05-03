@@ -24,13 +24,6 @@ dist-ssr
 *.sw?
 
 # Amplify
-.amplify
-amplifyconfiguration*
-
-# Environment files
+amplify_outputs.sandbox.json
+amplify_outputs.prod.json
 .env.local
-
-# Keep configuration files
-!amplify_outputs.json
-!amplify_outputs.prod.json
-!amplify_outputs.sandbox.json
