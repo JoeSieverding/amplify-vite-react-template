@@ -372,7 +372,7 @@ function MilestoneUpdateForm() {
       setShowBaselineModal(false);
       setBaselineConfirmationText("");
       
-      showNotification("success", "Milestone has been baselined successfully.");
+      //showNotification("success", "Milestone has been baselined successfully.");
     } catch (error) {
       console.error("Error baselining milestone:", error);
       showNotification("error", "Failed to baseline milestone.");
