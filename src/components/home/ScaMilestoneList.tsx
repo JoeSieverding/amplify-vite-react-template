@@ -13,7 +13,8 @@ import {
   CollectionPreferences,
   ButtonDropdown,
   Modal,
-  Input
+  Input,
+  SegmentedControl
 } from "@cloudscape-design/components";
 
 const client = generateClient<Schema>();
@@ -22,21 +23,6 @@ interface Preferences {
   pageSize: number;
   contentDisplay: Array<{ id: string; visible: boolean }>;
 }
-
-const formatDate = (dateString: string | null | undefined): string => {
-  if (!dateString) return '';
-  
-  // Check if the date is already in MM/DD/YY format
-  const mmddyyRegex = /^(0[1-9]|1[0-2])\/(0[1-9]|[12][0-9]|3[1])\/(19|20)?\d{2}$/;
-  if (mmddyyRegex.test(dateString)) {
-    // If it's already in correct format, return as is
-    return dateString;
-  }
-
-  // If not in MM/DD/YY format, return the original string
-  return dateString;
-};
-
 
 const initialPreferences: Preferences = {
   pageSize: 10,
@@ -103,7 +89,7 @@ const styles = {
     whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
-    minWidth: '300px' 
+    maxWidth: '100%' 
   }
 } as const; // Using 'as const' to make it readonly
 
@@ -120,40 +106,150 @@ function ScaMilestoneList() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirmationText, setDeleteConfirmationText] = useState("");
   const [preferences, setPreferences] = useState<Preferences>(initialPreferences);
-  const sortMilestones = (milestones: Schema["Milestone"]["type"][]) => {
-    return [...milestones].sort((a, b) => {
-      // First sort by target date
-      if (a.targeted_date && b.targeted_date) {
-        if (a.targeted_date < b.targeted_date) return -1;
-        if (a.targeted_date > b.targeted_date) return 1;
-      } else if (a.targeted_date) {
-        return -1; // a has date, b doesn't
-      } else if (b.targeted_date) {
-        return 1;  // b has date, a doesn't
-      }
+  const [currentPageIndex, setCurrentPageIndex] = useState(1);
+  const [pagesCount, setPagesCount] = useState(1);
+  const [filterType, setFilterType] = useState<'all' | 'tech' | 'biz'>('all');
+  const formatDate = (dateString: string | null | undefined): string => {
+    if (!dateString) return '';
+    
+    // Check if the date is already in MM/DD/YY format
+    const mmddyyRegex = /^(0[1-9]|1[0-2])\/(0[1-9]|[12][0-9]|3[1])\/(19|20)?\d{2}$/;
+    if (mmddyyRegex.test(dateString)) {
+      // If it's already in correct format, return as is
+      return dateString;
+    }
   
-      // If dates are equal, sort by milestone type
-      if (a.milestone_type && b.milestone_type) {
-        const typeCompare = a.milestone_type.localeCompare(b.milestone_type);
-        if (typeCompare !== 0) return typeCompare;
-      } else if (a.milestone_type) {
-        return -1;
-      } else if (b.milestone_type) {
-        return 1;
-      }
-  
-      // If types are equal, sort by description
-      if (a.milestone_description && b.milestone_description) {
-        return a.milestone_description.localeCompare(b.milestone_description);
-      } else if (a.milestone_description) {
-        return -1;
-      } else if (b.milestone_description) {
-        return 1;
-      }
-  
-      return 0;
-    });
+    // If not in MM/DD/YY format, return the original string
+    return dateString;
   };
+  
+  // Add the helper function here
+  // Helper function to parse date strings into Date objects for comparison
+  const parseDate = useCallback((dateString: string | null | undefined): Date | null => {
+    if (!dateString) return null;
+    
+    // Check if the date is in MM/DD/YY format
+    const mmddyyRegex = /^(0[1-9]|1[0-2])\/(0[1-9]|[12][0-9]|3[1])\/(19|20)?\d{2}$/;
+    if (mmddyyRegex.test(dateString)) {
+      const [month, day, year] = dateString.split('/');
+      // Convert YY to YYYY if needed
+      let fullYear = year;
+      if (year.length === 2) {
+        fullYear = parseInt(year) > 50 ? `19${year}` : `20${year}`;
+      }
+      return new Date(`${fullYear}-${month}-${day}`);
+    }
+    
+    // Try to parse as ISO date
+    const date = new Date(dateString);
+    return isNaN(date.getTime()) ? null : date;
+  }, []);
+  
+// Then, wrap sortMilestones in useCallback with parseDate as a dependency
+const sortMilestones = useCallback((milestones: Schema["Milestone"]["type"][]) => {
+  return [...milestones].sort((a, b) => {
+    // First sort by target date
+    const dateA = parseDate(a.targeted_date);
+    const dateB = parseDate(b.targeted_date);
+    
+    if (dateA && dateB) {
+      return dateA.getTime() - dateB.getTime(); // Ascending order (oldest first)
+    } else if (dateA) {
+      return -1; // a has date, b doesn't
+    } else if (dateB) {
+      return 1;  // b has date, a doesn't
+    }
+
+    // If dates are equal or both null, sort by milestone type
+    if (a.milestone_type && b.milestone_type) {
+      const typeCompare = a.milestone_type.localeCompare(b.milestone_type);
+      if (typeCompare !== 0) return typeCompare;
+    } else if (a.milestone_type) {
+      return -1;
+    } else if (b.milestone_type) {
+      return 1;
+    }
+
+    // If types are equal, sort by description
+    if (a.milestone_description && b.milestone_description) {
+      return a.milestone_description.localeCompare(b.milestone_description);
+    } else if (a.milestone_description) {
+      return -1;
+    } else if (b.milestone_description) {
+      return 1;
+    }
+
+    return 0;
+  });
+}, [parseDate]); // Add parseDate as a dependency
+
+// Helper function to render status indicator (RAG status or Not Baselined warning)
+const renderStatusIndicator = useCallback((item: Schema["Milestone"]["type"]) => {
+ 
+  //console.log('Milestone item:', item);
+  //console.log('is_rag_override type:', typeof item.is_rag_override, 'value:', item.is_rag_override);
+
+  if (!item.is_baselined) {
+    return (
+      <span style={{ 
+        marginLeft: '8px', 
+        display: 'inline-flex', 
+        alignItems: 'center',
+        color: '#FF9900' // Warning color (amber)
+      }}>
+        <span style={{ 
+          backgroundColor: '#FF9900', // Warning color (amber)
+          width: '10px',
+          height: '10px',
+          borderRadius: '50%',
+          display: 'inline-block',
+          marginRight: '4px'
+        }} />
+        <span>Not Baselined</span>
+      </span>
+    );
+  }
+  
+  // If baselined but no RAG status, return null
+  if (!item.calc_rag_type) return null;
+  
+  // Determine color based on RAG status
+  let statusColor;
+  switch (item.calc_rag_type.toLowerCase()) {
+    case 'red':
+      statusColor = '#D13212'; // Red
+      break;
+    case 'amber':
+      statusColor = '#FF9900'; // Amber/Yellow
+      break;
+    case 'green':
+      statusColor = '#1D8102'; // Green
+      break;
+    default:
+      statusColor = '#5F6B7A'; // Default gray
+  }
+  
+  // Check if isOverride is true (handle both boolean and string 'true')
+  const showOverride = item.is_rag_override === true
+  
+  return (
+    <span style={{ marginLeft: '8px', display: 'inline-flex', alignItems: 'center' }}>
+      <span style={{ 
+        backgroundColor: statusColor,
+        width: '10px',
+        height: '10px',
+        borderRadius: '50%',
+        display: 'inline-block',
+        marginRight: '4px'
+      }} />
+      <span>
+        {item.calc_rag_type}
+        {showOverride && <span style={{ fontStyle: 'italic', marginLeft: '4px' }}>(Override)</span>}
+      </span>
+    </span>
+  );
+}, []);
+
   // Navigation check
   useEffect(() => {
     if (!location.state?.sca) {
@@ -168,14 +264,81 @@ function ScaMilestoneList() {
   }, [location.state, navigate]);
 
 // Update your filtering logic to maintain sort order
-const handleFiltering = useCallback((text: string = '') => {
+// Update your filtering logic to maintain sort order and apply type filter
+const handleFiltering = useCallback((text: string = '', type: 'all' | 'tech' | 'biz' = filterType) => {
   setFilteringText(text);
-  const filtered = text ? milestones.filter(item => 
+  
+  // First filter by text
+  let filtered = text ? milestones.filter(item => 
     (item.milestone_type?.toLowerCase() || '').includes(text.toLowerCase()) ||
     (item.milestone_description?.toLowerCase() || '').includes(text.toLowerCase())
   ) : milestones;
+  
+  // Then apply type filter
+  if (type === 'tech') {
+    filtered = filtered.filter(item => item.is_tech === true);
+  } else if (type === 'biz') {
+    filtered = filtered.filter(item => item.is_tech === false);
+  }
+  
   setFilteredItems(sortMilestones(filtered));  // Apply sorting to filtered results
-}, [milestones]);
+}, [milestones, sortMilestones, filterType]);
+
+// Handle filter type change
+const handleFilterTypeChange = useCallback((type: 'all' | 'tech' | 'biz') => {
+  setFilterType(type);
+  handleFiltering(filteringText, type);
+}, [filteringText, handleFiltering]);
+
+// Custom filter component with text filter and radio buttons
+const CustomFilter = () => (
+  <div style={{ display: 'flex', alignItems: 'center' }}>
+    <div style={{ marginRight: '16px' }}>
+      <SegmentedControl
+        selectedId={filterType}
+        onChange={({ detail }) => handleFilterTypeChange(detail.selectedId as 'all' | 'tech' | 'biz')}
+        label="Filter by type"
+        options={[
+          { id: 'all', text: 'Tech+Biz' },
+          { id: 'tech', text: 'Tech' },
+          { id: 'biz', text: 'Biz' }
+        ]}
+      />
+    </div>
+    <div style={{ width: '50%' }}>
+      <TextFilter
+        filteringPlaceholder="Find Milestone"
+        filteringText={filteringText}
+        onChange={({ detail }) => handleFiltering(detail.filteringText)}
+        countText={`${filteredItems.length} matches`}
+      />
+    </div>
+  </div>
+);
+
+// Calculate pagination
+const calculatePagination = useCallback(() => {
+  const pageSize = preferences.pageSize;
+  const totalItems = filteredItems.length;
+  const calculatedPagesCount = Math.ceil(totalItems / pageSize);
+  setPagesCount(calculatedPagesCount || 1); // Ensure at least 1 page even when empty
+  // If current page is beyond the new page count, reset to page 1
+  if (currentPageIndex > calculatedPagesCount && calculatedPagesCount > 0) {
+    setCurrentPageIndex(1);
+  }
+}, [filteredItems.length, preferences.pageSize, currentPageIndex]);
+
+// Get current page items
+const getCurrentPageItems = useCallback(() => {
+  const startIndex = (currentPageIndex - 1) * preferences.pageSize;
+  const endIndex = startIndex + preferences.pageSize;
+  return filteredItems.slice(startIndex, endIndex);
+}, [filteredItems, currentPageIndex, preferences.pageSize]);
+
+// Add this after your other useEffect hooks
+useEffect(() => {
+  calculatePagination();
+}, [filteredItems, preferences.pageSize, calculatePagination]);
 
 // Milestone click handler
 const handleMilestoneClick = useCallback((item: Schema["Milestone"]["type"]) => {
@@ -219,45 +382,54 @@ const handleMilestoneClick = useCallback((item: Schema["Milestone"]["type"]) => 
       id: "milestone_type",
       header: "Type",
       cell: (item: Schema["Milestone"]["type"]) => item.milestone_type,
-      width: 100 // Add specific width
+      width: 70 // Add specific width
     },
     {
       id: "milestone_description",
       header: "Milestone",
       cell: (item: Schema["Milestone"]["type"]) => (
         <div 
-          style={styles.milestoneColumn} 
+          style={{
+            ...styles.milestoneColumn,
+            paddingLeft: 0, // Remove any left padding
+            cursor: 'pointer',
+            color: '#0073bb', // Link color
+            textDecoration: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between' // This will push the RAG status to the right
+          }} 
           title={item.milestone_description || ''}
+          onClick={() => handleMilestoneClick(item)}
         >
-          <Button variant="link" onClick={() => handleMilestoneClick(item)}>
-            {item.milestone_description}
-          </Button>
+          <span style={{ flexGrow: 1 }}>{item.milestone_description}</span>
+          {renderStatusIndicator(item)}
         </div>
       ),
-      width: 350,
-      minWidth: 300
+      width: 'auto',
+      minWidth: 400
     },
     {
       id: "is_tech",
       header: "Is Tech?",
       cell: (item: Schema["Milestone"]["type"]) => item.is_tech ? "Yes" : "No",
-      width: 50
+      width: 40
     },
     {
       id: "milestone_date",
-      header: "Milestone Date",
+      header: "Due Date",
       cell: (item: Schema["Milestone"]["type"]) => formatDate(item.targeted_date),
-      width: 100
+      width: 70
     },
     {
       id: "milestone_goal",
       header: "Goal",
       cell: (item: Schema["Milestone"]["type"]) => item.milestone_goal,
-      width: 200
+      width: 150
     }
-  ], [handleMilestoneClick]);
+  ], [handleMilestoneClick, renderStatusIndicator]);
 
-// Subscription effect
+  // Subscription effect
 useEffect(() => {
   if (!sca?.id) return;
   
@@ -296,13 +468,13 @@ useEffect(() => {
       subscription.unsubscribe();
     }
   };
-}, [sca?.id]);
+}, [sca?.id, sortMilestones]); // Add sortMilestones to the dependency array
 
 
   return (
     <>
       <Table
-        items={filteredItems}
+        items={getCurrentPageItems()}
         loading={isLoading}
         columnDefinitions={columnDefinitions}
         selectedItems={selectedItems}
@@ -310,6 +482,7 @@ useEffect(() => {
         columnDisplay={preferences.contentDisplay}
         selectionType="multi"
         trackBy="id"
+        //resizableColumns={true}
         empty={
           <Box margin={{ vertical: "xs" }} textAlign="center" color="inherit">
             <SpaceBetween size="m">
@@ -317,14 +490,7 @@ useEffect(() => {
             </SpaceBetween>
           </Box>
         }
-        filter={
-          <TextFilter
-            filteringPlaceholder="Find Milestone"
-            filteringText={filteringText}
-            onChange={({ detail }) => handleFiltering(detail.filteringText)}
-            countText={`${filteredItems.length} matches`}
-          />
-        }
+        filter={<CustomFilter />}
         header={
           <Header counter={`(${selectedItems.length || filteredItems.length})`}>
             {sca?.partner && sca?.contract_name 
@@ -343,7 +509,13 @@ useEffect(() => {
             </ButtonDropdown>
           </Header>
         }
-        pagination={<Pagination currentPageIndex={1} pagesCount={2} />}
+        pagination={
+          <Pagination 
+            currentPageIndex={currentPageIndex}
+            pagesCount={pagesCount}
+            onChange={({ detail }) => setCurrentPageIndex(detail.currentPageIndex)}
+          />
+        }
         preferences={
           <CollectionPreferences
             title="Preferences"
