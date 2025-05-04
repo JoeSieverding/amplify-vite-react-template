@@ -355,10 +355,11 @@ function MilestoneUpdateForm() {
     
     setIsLoading(true);
     try {
-      // Update the milestone to set is_baselined to true
+      // Also update the is_rag_override field in the Milestone table
       await client.models.Milestone.update({
         id: milestoneData.id,
-        is_baselined: true
+        is_rag_override: statusData.is_status_rag_override,
+        latest_actuals: statusData.latest_actuals // Also update latest_actuals
       });
       
       // Update local state
@@ -437,6 +438,15 @@ const isStatusFormValid = useCallback(() => {
         ...prev,
         calc_rag_type: ragStatus
       }));
+
+        // Update lastSavedData to include the new calc_rag_type value
+      setLastSavedData(prev => ({
+        ...prev,
+        calc_rag_type: ragStatus
+      }));
+      
+      // Reset hasChanges flag since we've updated lastSavedData
+      setHasChanges(false);
       
       console.log('Milestone RAG status updated successfully');
     } catch (error) {
@@ -784,6 +794,16 @@ const statusHistoryColumns = [
     width: 100
   },
   {
+    id: "is_status_rag_override",
+    header: "Override?",
+    cell: (item: MilestoneStatusType) => (
+      <StatusIndicator type={item.is_status_rag_override ? "warning" : "info"}>
+        {item.is_status_rag_override ? "Yes" : "No"}
+      </StatusIndicator>
+    ),
+    width: 80
+  },
+  {
     id: "updated_by",
     header: "Updated By",
     cell: (item: MilestoneStatusType) => item.updated_by,
@@ -904,22 +924,27 @@ useEffect(() => {
   ];
 
   useEffect(() => {
-    // Show warning if RAG status is not Red but actuals are significantly below expected
-    if (statusData.latest_actuals && statusData.expected_kpi_value && statusData.status_rag_status !== "Red") {
+    // Check if both expected KPI and latest actuals are provided
+    if (statusData.latest_actuals && statusData.expected_kpi_value) {
       const actuals = parseFloat(statusData.latest_actuals);
       const expected = parseFloat(statusData.expected_kpi_value);
       
-      if (!isNaN(actuals) && !isNaN(expected) && actuals < expected * 0.8) {
-        setShowRagNote(true);
-        // Automatically check the RAG Override checkbox when conditions are met
-        setStatusData(prev => ({ ...prev, is_status_rag_override: true }));
-        return;
+      if (!isNaN(actuals) && !isNaN(expected)) {
+        // If actuals are less than expected, set RAG Override
+        if (actuals < expected) {
+          // Show warning note
+          setShowRagNote(true);
+          // Automatically check the RAG Override checkbox
+          setStatusData(prev => ({ ...prev, is_status_rag_override: true }));
+          return;
+        }
       }
     }
     
+    // If we get here, conditions for automatic RAG Override are not met
     setShowRagNote(false);
-  }, [statusData.latest_actuals, statusData.expected_kpi_value, statusData.status_rag_status]);
-  
+    setStatusData(prev => ({ ...prev, is_status_rag_override: false }));
+  }, [statusData.latest_actuals, statusData.expected_kpi_value]);  
 
   const handleReset = () => {
     setMilestoneData({
@@ -1366,34 +1391,43 @@ useEffect(() => {
                     options={ragTypeOptions}
                   />
                 </FormField>
-
-                <FormField label="RAG Override">
-                  <SpaceBetween direction="horizontal" size="xs" alignItems="center">
-                    <Checkbox
-                      checked={statusData.is_status_rag_override}
-                      onChange={({ detail }) =>
-                        setStatusData(prev => ({ ...prev, is_rag_override: detail.checked }))
-                      }
-                      disabled={showRagNote}
-                      description={showRagNote ? "Automatically checked due to performance below threshold" : undefined}
-                    >
-                      <TextContent>Override RAG Status</TextContent>
-                    </Checkbox>
-                    {showRagNote && (
-                      <Box color="text-status-warning" padding="xs">
-                        Explain why RAG status is not Red in notes below
-                      </Box>
-                    )}
-                  </SpaceBetween>
+                {showRagNote && statusData.status_rag_status !== "Red" && (
+                  <Alert
+                    type="warning"
+                    header="RAG Status Warning"
+                  >
+                    Actuals are below expected KPI value. Consider setting RAG status to Red or explain why in the comments.
+                  </Alert>
+                )}
+                <FormField
+                  label="RAG Override"
+                  description="RAG Override is automatically set when actuals are less than expected KPI value"
+                >
+                  <Checkbox
+                    checked={statusData.is_status_rag_override}
+                    disabled={true} // Always disabled, never clickable
+                  >
+                    <TextContent>
+                      Override RAG Status
+                      {statusData.is_status_rag_override && (
+                        <span style={{ marginLeft: '8px', color: '#666', fontStyle: 'italic' }}>
+                          (Automatically set)
+                        </span>
+                      )}
+                    </TextContent>
+                  </Checkbox>
                 </FormField>
+
               </SpaceBetween>
 
               <FormField
                 label="Notes"
                 description={
-                  statusData.is_status_rag_override 
-                    ? "Minimum 20 characters required" 
-                    : "Minimum 10 characters required"
+                  statusData.is_status_rag_override && statusData.status_rag_status !== "Red"
+                    ? "Please explain why RAG status is not Red despite actuals being below expected"
+                    : statusData.is_status_rag_override 
+                      ? "Minimum 20 characters required" 
+                      : "Minimum 10 characters required"
                 }
               >
                 <Textarea
@@ -1404,6 +1438,7 @@ useEffect(() => {
                   rows={3}
                 />
               </FormField>
+
             </SpaceBetween>
           </Container>
         </SpaceBetween>
