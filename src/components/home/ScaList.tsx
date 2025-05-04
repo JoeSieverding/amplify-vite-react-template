@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { Schema } from "../../../amplify/data/resource";
 import { generateClient } from "aws-amplify/data";
 import Table from "@cloudscape-design/components/table";
@@ -17,6 +17,8 @@ import Input from "@cloudscape-design/components/input";
 import { serializeData } from '../../utils/dataSerializer';
 import { NonCancelableEventHandler } from "@cloudscape-design/components/internal/events";
 import { TableProps } from "@cloudscape-design/components/table";
+import ScaImportChatBot from "./ScaImportChatBot";
+import SegmentedControl from "@cloudscape-design/components/segmented-control";
 
 const client = generateClient<Schema>();
 
@@ -28,7 +30,7 @@ interface Preferences {
   }>;
 }
 
-type SortableFields = "partner" | "contract_name" | "contract_type" | "contract_description";
+type SortableFields = "partner" | "contract_name" | "is_tech" | "contract_type" | "contract_description";
 
 interface SortingColumn {
   sortingField: SortableFields;
@@ -43,15 +45,18 @@ function ScaList() {
   const [filteredItems, setFilteredItems] = useState<ScaType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showImportScaModal, setShowImportScaModal] = useState(false);
   const [deleteConfirmationText, setDeleteConfirmationText] = useState('');
   const [currentPageIndex, setCurrentPageIndex] = useState(1);
   const [sortingColumn, setSortingColumn] = useState<SortingColumn>({ sortingField: "partner" });
   const [sortingDescending, setSortingDescending] = useState(false);
+  const [filterType, setFilterType] = useState<'all' | 'biz'>('all');
   const [preferences, setPreferences] = useState<Preferences>({
     pageSize: 10,
     contentDisplay: [
       { id: "partner", visible: true },
       { id: "contract_name", visible: true },
+      { id: "is_tech", visible: true },
       { id: "contract_type", visible: true },
       { id: "contract_description", visible: true }
     ]
@@ -78,6 +83,9 @@ function ScaList() {
     switch (detail.id) {
       case 'delete':
         handleDeleteScas();
+        break;
+      case 'add':
+        setShowImportScaModal(true);
         break;
     }
   };
@@ -126,6 +134,42 @@ function ScaList() {
     setFilteredItems(sortedItems);
   };
   
+  // Define handleFiltering before it's used in useEffect
+  const handleFiltering = useCallback((text: string = '', type: 'all' | 'biz' = filterType) => {
+    if (text === undefined) {
+      text = '';
+    }
+    
+    setFilteringText(text);
+    
+    // First filter by text
+    let filtered = text ? scas.filter(
+      item => 
+        (item.partner?.toLowerCase() || '').includes(text.toLowerCase()) ||
+        (item.contract_name?.toLowerCase() || '').includes(text.toLowerCase()) ||
+        (item.is_tech?.toLowerCase() || '').includes(text.toLowerCase()) ||
+        (item.contract_type?.toLowerCase() || '').includes(text.toLowerCase()) ||
+        (item.contract_description?.toLowerCase() || '').includes(text.toLowerCase())
+    ) : [...scas];
+    
+    // Then apply type filter
+    if (type === 'all') {
+      // Tech+Biz should show only SCAs with is_tech = true
+      filtered = filtered.filter(item => item.is_tech === 'true');
+    }
+    // For 'biz' type, show all SCAs (no additional filtering)
+    
+    setFilteredItems(filtered);
+    setCurrentPageIndex(1);
+  }, [scas, filterType]);
+  
+  // Handle filter type change
+  const handleFilterTypeChange = useCallback((type: 'all' | 'biz') => {
+    setFilterType(type);
+    handleFiltering(filteringText, type);
+  }, [filteringText, handleFiltering]);
+  
+  // Now we can use handleFiltering in useEffect
   useEffect(() => {
     const subscription = client.models.Sca.observeQuery().subscribe({
       next: ({ items }: { items: ScaType[] }) => {
@@ -147,36 +191,41 @@ function ScaList() {
           return partnerComparison;
         });
         setScas(sortedItems);
-        setFilteredItems(sortedItems);
+        
+        // Apply current filters to the new data
+        handleFiltering(filteringText, filterType);
         setIsLoading(false);
       }
     });
   
     return () => subscription.unsubscribe();
-  }, []);
+  }, [handleFiltering, filteringText, filterType]);
   
-
-  const handleFiltering = (text: string) => {
-    if (text === undefined) {
-      setFilteringText('');
-      setFilteredItems(scas);
-      setCurrentPageIndex(1);
-      return;
-    }
-    
-    setFilteringText(text);
-    
-    const filtered = scas.filter(
-      item => 
-        (item.partner?.toLowerCase() || '').includes(text.toLowerCase()) ||
-        (item.contract_name?.toLowerCase() || '').includes(text.toLowerCase()) ||
-        (item.contract_type?.toLowerCase() || '').includes(text.toLowerCase()) ||
-        (item.contract_description?.toLowerCase() || '').includes(text.toLowerCase())
-    );
-    
-    setFilteredItems(filtered);
-    setCurrentPageIndex(1);
-  };
+  // Custom filter component with text filter and segmented control
+  const CustomFilter = () => (
+    <div style={{ display: 'flex', alignItems: 'center' }}>
+      <div style={{ marginRight: '16px' }}>
+        <SegmentedControl
+          selectedId={filterType}
+          onChange={({ detail }) => handleFilterTypeChange(detail.selectedId as 'all' | 'biz')}
+          label="Filter by type"
+          options={[
+            { id: 'all', text: 'Has Tech' },
+            { id: 'biz', text: 'All SCAs' }
+          ]}
+        />
+      </div>
+      <div style={{ width: '50%' }}>
+        <TextFilter
+          filteringPlaceholder="Find SCA"
+          filteringText={filteringText || ''}
+          onChange={({ detail }) => handleFiltering(detail.filteringText)}
+          countText={filteredItems ? `${filteredItems.length} matches` : "0 matches"}
+          disabled={false}
+        />
+      </div>
+    </div>
+  );
 
   const handlePreferencesChange: CollectionPreferencesProps['onConfirm'] = ({ detail }) => {
     setPreferences({
@@ -222,6 +271,12 @@ function ScaList() {
             sortingField: "contract_name" as SortableFields
           },
           {
+            id: "is_tech",
+            header: "Has Tech?",
+            cell: item => item.is_tech === "true" ? "Yes" : item.is_tech === "false" ? "No" : "-",
+            sortingField: "is_tech" as SortableFields
+          },
+          {
             id: "contract_type",
             header: "Type",
             cell: item => item.contract_type,
@@ -247,15 +302,7 @@ function ScaList() {
             </SpaceBetween>
           </Box>
         }
-        filter={
-          <TextFilter
-            filteringPlaceholder="Find SCA"
-            filteringText={filteringText || ''}
-            onChange={({ detail }) => handleFiltering(detail.filteringText)}
-            countText={filteredItems ? `${filteredItems.length} matches` : "0 matches"}
-            disabled={false}
-          />
-        }
+        filter={<CustomFilter />}
         header={
           <Header counter={selectedItems.length ? `(${selectedItems.length}/${filteredItems.length})` : `(${filteredItems.length})`}>
             SCA List<span>     </span>
@@ -264,9 +311,8 @@ function ScaList() {
                 { text: "List SCAs", id: "rm", disabled: false },
                 {
                   id: "add",
-                  text: "Add SCA",
-                  disabled: false,
-                  href: "/addsca"
+                  text: "Upload SCA",
+                  disabled: false
                 },
                 {
                   text: "Delete Selected",
@@ -325,6 +371,7 @@ function ScaList() {
               options: [
                 { id: "partner", label: "Partner", alwaysVisible: true },
                 { id: "contract_name", label: "SCA" },
+                { id: "is_tech", label: "Has Tech?" },
                 { id: "contract_type", label: "Type" },
                 { id: "contract_description", label: "Description" }
               ]
@@ -351,6 +398,7 @@ function ScaList() {
           />
         }
       />
+      {/* Delete Modal */}
       <Modal
         visible={showDeleteModal}
         onDismiss={() => setShowDeleteModal(false)}
@@ -384,6 +432,17 @@ function ScaList() {
             placeholder="Type 'delete' to confirm"
           />
         </SpaceBetween>
+      </Modal>
+
+      {/* Upload SCA Modal */}
+      <Modal
+        visible={showImportScaModal}
+        onDismiss={() => setShowImportScaModal(false)}
+        header="Upload SCA"
+        closeAriaLabel="Close dialog"
+        size="large"
+      >
+        <ScaImportChatBot />
       </Modal>
     </>
   );

@@ -50,6 +50,7 @@ const schema = a.schema({
       // New fields added - fields are optional by default
       contract_spcg_id: a.string(),
       primary_use_cases: a.string(),
+      is_tech: a.string(),
       // Relationships
       milestones: a.hasMany('Milestone', 'scaId')
     })
