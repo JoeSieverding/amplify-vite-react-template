@@ -29,6 +29,7 @@ const initialPreferences: Preferences = {
   contentDisplay: [
     { id: "milestone_type", visible: true },
     { id: "milestone_description", visible: true },
+    { id: "status", visible: true },
     { id: "is_tech", visible: true },
     { id: "milestone_date", visible: true },
     { id: "milestone_goal", visible: true }
@@ -185,14 +186,9 @@ const sortMilestones = useCallback((milestones: Schema["Milestone"]["type"][]) =
 
 // Helper function to render status indicator (RAG status or Not Baselined warning)
 const renderStatusIndicator = useCallback((item: Schema["Milestone"]["type"]) => {
- 
-  //console.log('Milestone item:', item);
-  //console.log('is_rag_override type:', typeof item.is_rag_override, 'value:', item.is_rag_override);
-
   if (!item.is_baselined) {
     return (
       <span style={{ 
-        marginLeft: '8px', 
         display: 'inline-flex', 
         alignItems: 'center',
         color: '#FF9900' // Warning color (amber)
@@ -229,11 +225,14 @@ const renderStatusIndicator = useCallback((item: Schema["Milestone"]["type"]) =>
       statusColor = '#5F6B7A'; // Default gray
   }
   
-  // Check if isOverride is true (handle both boolean and string 'true')
+  // Check if isOverride is true (handle different possible types)
   const showOverride = item.is_rag_override === true
   
   return (
-    <span style={{ marginLeft: '8px', display: 'inline-flex', alignItems: 'center' }}>
+    <span style={{ 
+      display: 'inline-flex', 
+      alignItems: 'center' 
+    }}>
       <span style={{ 
         backgroundColor: statusColor,
         width: '10px',
@@ -249,6 +248,7 @@ const renderStatusIndicator = useCallback((item: Schema["Milestone"]["type"]) =>
     </span>
   );
 }, []);
+
 
   // Navigation check
   useEffect(() => {
@@ -377,57 +377,61 @@ const handleMilestoneClick = useCallback((item: Schema["Milestone"]["type"]) => 
   };
 
   // Column definitions
-  const columnDefinitions = useMemo(() => [
-    {
-      id: "milestone_type",
-      header: "Type",
-      cell: (item: Schema["Milestone"]["type"]) => item.milestone_type,
-      width: 70 // Add specific width
-    },
-    {
-      id: "milestone_description",
-      header: "Milestone",
-      cell: (item: Schema["Milestone"]["type"]) => (
-        <div 
-          style={{
-            ...styles.milestoneColumn,
-            paddingLeft: 0, // Remove any left padding
-            cursor: 'pointer',
-            color: '#0073bb', // Link color
-            textDecoration: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between' // This will push the RAG status to the right
-          }} 
-          title={item.milestone_description || ''}
-          onClick={() => handleMilestoneClick(item)}
-        >
-          <span style={{ flexGrow: 1 }}>{item.milestone_description}</span>
-          {renderStatusIndicator(item)}
-        </div>
-      ),
-      width: 'auto',
-      minWidth: 400
-    },
-    {
-      id: "is_tech",
-      header: "Is Tech?",
-      cell: (item: Schema["Milestone"]["type"]) => item.is_tech ? "Yes" : "No",
-      width: 40
-    },
-    {
-      id: "milestone_date",
-      header: "Due Date",
-      cell: (item: Schema["Milestone"]["type"]) => formatDate(item.targeted_date),
-      width: 70
-    },
-    {
-      id: "milestone_goal",
-      header: "Goal",
-      cell: (item: Schema["Milestone"]["type"]) => item.milestone_goal,
-      width: 150
-    }
-  ], [handleMilestoneClick, renderStatusIndicator]);
+const columnDefinitions = useMemo(() => [
+  {
+    id: "milestone_type",
+    header: "Type",
+    cell: (item: Schema["Milestone"]["type"]) => item.milestone_type,
+    width: 70 // Add specific width
+  },
+  {
+    id: "milestone_description",
+    header: "Milestone",
+    cell: (item: Schema["Milestone"]["type"]) => (
+      <div 
+        style={{
+          ...styles.milestoneColumn,
+          paddingLeft: 0, // Remove any left padding
+          cursor: 'pointer',
+          color: '#0073bb', // Link color
+          textDecoration: 'none'
+        }} 
+        title={item.milestone_description || ''}
+        onClick={() => handleMilestoneClick(item)}
+      >
+        {item.milestone_description}
+      </div>
+    ),
+    width: 'auto',
+    minWidth: 350, // Reduced since we're moving status to its own column
+    maxWidth: 450
+  },
+  {
+    id: "status",
+    header: "Status",
+    cell: (item: Schema["Milestone"]["type"]) => renderStatusIndicator(item),
+    width: 120 // Width for the status column
+  },
+  {
+    id: "is_tech",
+    header: "Is Tech?",
+    cell: (item: Schema["Milestone"]["type"]) => item.is_tech ? "Yes" : "No",
+    width: 40
+  },
+  {
+    id: "milestone_date",
+    header: "Due Date",
+    cell: (item: Schema["Milestone"]["type"]) => formatDate(item.targeted_date),
+    width: 70
+  },
+  {
+    id: "milestone_goal",
+    header: "Goal",
+    cell: (item: Schema["Milestone"]["type"]) => item.milestone_goal,
+    width: 150
+  }
+], [handleMilestoneClick, renderStatusIndicator]);
+
 
   // Subscription effect
 useEffect(() => {
