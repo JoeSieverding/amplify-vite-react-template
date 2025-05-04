@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import * as React from "react";
 import { serializeData } from '../src/utils/dataSerializer.ts';
 import {
-  Button, Form, SpaceBetween, Container, Header, FormField, Input, Grid
+  Button, Form, SpaceBetween, Container, Header, FormField, Input, Grid, SegmentedControl
 } from "@cloudscape-design/components";
 import { generateClient } from "aws-amplify/api";
 import { updateSca } from "./graphql/mutations";
@@ -100,6 +100,7 @@ const FormInputField = ({
   rows = 1, 
   required = true, 
   isDate = false, 
+  isSegmentedControl = false,
   name,
   formState 
 }) => {
@@ -191,6 +192,32 @@ const FormInputField = ({
 
   const { status, constraintText } = getFieldStatus();
 
+  // For segmented control (Has Tech field)
+  if (isSegmentedControl) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'flex-start', width: '100%', gap: '10px' }}>
+        <div style={{ width: '100px', marginRight: '10px', textAlign: 'right', flexShrink: 0 }}>
+          {label}{required && <span style={{ color: '#d32f2f' }}>*</span>}:
+        </div>
+        <div style={{ flex: '1 1 auto' }}>
+          <FormField 
+            stretch={true}
+            constraintText={!isFocused ? constraintText : ""}
+          >
+            <SegmentedControl
+              selectedId={localValue === 'true' ? 'true' : 'false'}
+              onChange={({ detail }) => onChange(detail.selectedId)}
+              options={[
+                { id: 'true', text: 'Yes' },
+                { id: 'false', text: 'No' }
+              ]}
+            />
+          </FormField>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ display: 'flex', alignItems: 'flex-start', width: '100%', gap: '10px' }}>
       <div style={{ width: '100px', marginRight: '10px', textAlign: 'right', flexShrink: 0 }}>
@@ -236,6 +263,13 @@ const FORM_FIELDS = {
     { name: 'contract_primary_industry', label: 'Industry' },
     { name: 'contract_theme', label: 'Theme' }
   ],
+  useCases: [
+    { name: 'primary_use_cases', label: 'Priority Use Cases', multiline: true, rows: 2 }
+  ],
+  techInfo: [
+    { name: 'is_tech', label: 'Has Tech', isSegmentedControl: true },
+    { name: 'contract_spcg_id', label: 'SPCG Identifier' }
+  ],
   details: [
     { name: 'contract_description', label: 'Description', multiline: true, rows: 5 },
     { name: 'contract_aws_contributions', label: 'AWS contributions', multiline: true, rows: 3 },
@@ -266,7 +300,10 @@ export default function ScaUpdateForm({ sca }) {
     contract_time_based_targets: sca?.contract_time_based_targets || "",
     contract_primary_industry: sca?.contract_primary_industry || "",
     contract_overall_status: sca?.contract_overall_status || "",
-    contract_theme: sca?.contract_theme || ""
+    contract_theme: sca?.contract_theme || "",
+    primary_use_cases: sca?.primary_use_cases || "",
+    is_tech: sca?.is_tech || "false",
+    contract_spcg_id: sca?.contract_spcg_id || ""
   });
 
   const updateField = (field, value) => {
@@ -290,7 +327,10 @@ export default function ScaUpdateForm({ sca }) {
         contract_time_based_targets: localSca.contract_time_based_targets || "",
         contract_primary_industry: localSca.contract_primary_industry || "",
         contract_overall_status: localSca.contract_overall_status || "",
-        contract_theme: localSca.contract_theme || ""
+        contract_theme: localSca.contract_theme || "",
+        primary_use_cases: localSca.primary_use_cases || "",
+        is_tech: localSca.is_tech || "false",
+        contract_spcg_id: localSca.contract_spcg_id || ""
       });
       setIsFormChanged(false);
     }
@@ -311,50 +351,40 @@ export default function ScaUpdateForm({ sca }) {
       return;
     }
   
+    // Create a copy of the form state for submission
+    const submissionData = {
+      ...formState,
+      // Convert is_tech string to the proper format
+      is_tech: formState.is_tech // Keep as string since that's how it's defined in the schema
+    };
+  
     try {
+      console.log("Submitting data:", submissionData); // Add logging to debug
+      
       await client.graphql({
         query: updateSca,
         variables: {
           input: {
             id: localSca.id,
-            ...formState
+            ...submissionData
           }
         }
       });
   
       const updatedSca = {
         ...localSca,
-        ...formState
+        ...submissionData
       };
       setLocalSca(updatedSca);
       setIsFormChanged(false);
+      
+      // Add confirmation message
+      console.log("SCA updated successfully with is_tech:", submissionData.is_tech);
     } catch (err) {
       console.error('Error updating SCA:', err);
     }
   }
-
-  React.useEffect(() => {
-    if (sca) {
-      setLocalSca(sca);
-      setFormState({
-        partner: sca.partner || "",
-        start_date: sca.start_date || "",
-        end_date: sca.end_date || "",
-        contract_name: sca.contract_name || "",
-        contract_description: sca.contract_description || "",
-        contract_type: sca.contract_type || "",
-        contract_status: sca.contract_status || "",
-        contract_comments: sca.contract_comments || "",
-        contract_aws_contributions: sca.contract_aws_contributions || "",
-        contract_partner_contributions: sca.contract_partner_contributions || "",
-        contract_time_based_targets: sca.contract_time_based_targets || "",
-        contract_primary_industry: sca.contract_primary_industry || "",
-        contract_overall_status: sca.contract_overall_status || "",
-        contract_theme: sca.contract_theme || ""
-      });
-      setIsFormChanged(false);
-    }
-  }, [sca]);
+  
 
   if (!sca) {
     return null;
@@ -479,6 +509,37 @@ export default function ScaUpdateForm({ sca }) {
                     label={field.label}
                     value={formState[field.name]}
                     onChange={(value) => updateField(field.name, value)}
+                    name={field.name}
+                    formState={formState}
+                  />
+                ))}
+              </Grid>
+              
+              {/* Priority Use Cases row */}
+              <Grid gridDefinition={[{ colspan: 12 }]}>
+                {FORM_FIELDS.useCases.map((field) => (
+                  <FormInputField
+                    key={field.name}
+                    label={field.label}
+                    value={formState[field.name]}
+                    onChange={(value) => updateField(field.name, value)}
+                    multiline={field.multiline}
+                    rows={field.rows}
+                    name={field.name}
+                    formState={formState}
+                  />
+                ))}
+              </Grid>
+              
+              {/* Has Tech and SPCG Identifier row */}
+              <Grid gridDefinition={[{ colspan: 6 }, { colspan: 6 }]}>
+                {FORM_FIELDS.techInfo.map((field) => (
+                  <FormInputField
+                    key={field.name}
+                    label={field.label}
+                    value={formState[field.name]}
+                    onChange={(value) => updateField(field.name, value)}
+                    isSegmentedControl={field.isSegmentedControl}
                     name={field.name}
                     formState={formState}
                   />

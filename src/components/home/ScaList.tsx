@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useMemo } from "react";
 import type { Schema } from "../../../amplify/data/resource";
 import { generateClient } from "aws-amplify/data";
 import Table from "@cloudscape-design/components/table";
@@ -19,6 +19,7 @@ import { NonCancelableEventHandler } from "@cloudscape-design/components/interna
 import { TableProps } from "@cloudscape-design/components/table";
 import ScaImportChatBot from "./ScaImportChatBot";
 import SegmentedControl from "@cloudscape-design/components/segmented-control";
+import Spinner from "@cloudscape-design/components/spinner";
 
 const client = generateClient<Schema>();
 
@@ -40,17 +41,20 @@ type ScaType = Schema["Sca"]["type"];
 
 function ScaList() {
   const [scas, setScas] = useState<ScaType[]>([]);
+  const [techScas, setTechScas] = useState<ScaType[]>([]);
+  const [allScas, setAllScas] = useState<ScaType[]>([]);
   const [selectedItems, setSelectedItems] = useState<ScaType[]>([]);
   const [filteringText, setFilteringText] = useState<string>('');
   const [filteredItems, setFilteredItems] = useState<ScaType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isFiltering, setIsFiltering] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showImportScaModal, setShowImportScaModal] = useState(false);
   const [deleteConfirmationText, setDeleteConfirmationText] = useState('');
   const [currentPageIndex, setCurrentPageIndex] = useState(1);
   const [sortingColumn, setSortingColumn] = useState<SortingColumn>({ sortingField: "partner" });
   const [sortingDescending, setSortingDescending] = useState(false);
-  const [filterType, setFilterType] = useState<'all' | 'biz'>('all');
+  const [filterType, setFilterType] = useState<'all' | 'biz'>('biz'); // Default to 'biz' (All SCAs)
   const [preferences, setPreferences] = useState<Preferences>({
     pageSize: 10,
     contentDisplay: [
@@ -134,77 +138,161 @@ function ScaList() {
     setFilteredItems(sortedItems);
   };
   
-  // Define handleFiltering before it's used in useEffect
+  // Apply text filter to a dataset
+  const applyTextFilter = useCallback((items: ScaType[], text: string) => {
+    if (!text) return items;
+    
+    return items.filter(item => 
+      (item.partner?.toLowerCase() || '').includes(text.toLowerCase()) ||
+      (item.contract_name?.toLowerCase() || '').includes(text.toLowerCase()) ||
+      (item.contract_type?.toLowerCase() || '').includes(text.toLowerCase()) ||
+      (item.contract_description?.toLowerCase() || '').includes(text.toLowerCase())
+    );
+  }, []);
+  
+  // Optimized filtering function with visual feedback
   const handleFiltering = useCallback((text: string = '', type: 'all' | 'biz' = filterType) => {
     if (text === undefined) {
       text = '';
     }
     
+    // Show filtering indicator
+    setIsFiltering(true);
     setFilteringText(text);
     
-    // First filter by text
-    let filtered = text ? scas.filter(
-      item => 
-        (item.partner?.toLowerCase() || '').includes(text.toLowerCase()) ||
-        (item.contract_name?.toLowerCase() || '').includes(text.toLowerCase()) ||
-        (item.is_tech?.toLowerCase() || '').includes(text.toLowerCase()) ||
-        (item.contract_type?.toLowerCase() || '').includes(text.toLowerCase()) ||
-        (item.contract_description?.toLowerCase() || '').includes(text.toLowerCase())
-    ) : [...scas];
-    
-    // Then apply type filter
-    if (type === 'all') {
-      // Tech+Biz should show only SCAs with is_tech = true
-      filtered = filtered.filter(item => item.is_tech === 'true');
+    // Use setTimeout to allow UI to update before performing filtering
+    setTimeout(() => {
+      console.time('filter-operation');
+      
+      // Use pre-filtered datasets
+      let filtered: ScaType[];
+      
+      if (type === 'all') {
+        // For "Has Tech" filter, use pre-filtered tech SCAs
+        filtered = techScas;
+      } else {
+        // For "All SCAs", use all SCAs
+        filtered = allScas;
+      }
+      
+      // Apply text filter if needed
+      if (text) {
+        filtered = applyTextFilter(filtered, text);
+      }
+      
+      setFilteredItems(filtered);
+      setCurrentPageIndex(1);
+      
+      console.timeEnd('filter-operation');
+      setIsFiltering(false);
+    }, 10); // Small delay to allow UI update
+  }, [techScas, allScas, applyTextFilter]);
+  
+  // Debounced text filter handler
+  const debouncedTextFilter = useCallback((text: string) => {
+    // Clear any pending debounce
+    if ((window as any).filterDebounceTimeout) {
+      clearTimeout((window as any).filterDebounceTimeout);
     }
-    // For 'biz' type, show all SCAs (no additional filtering)
     
-    setFilteredItems(filtered);
-    setCurrentPageIndex(1);
-  }, [scas, filterType]);
+    // Set a new debounce timeout
+    (window as any).filterDebounceTimeout = setTimeout(() => {
+      handleFiltering(text, filterType);
+    }, 300); // 300ms debounce
+  }, [handleFiltering, filterType]);
   
-  // Handle filter type change
+  // Handle filter type change with visual feedback
   const handleFilterTypeChange = useCallback((type: 'all' | 'biz') => {
+    setIsFiltering(true);
     setFilterType(type);
-    handleFiltering(filteringText, type);
-  }, [filteringText, handleFiltering]);
+    
+    // Use pre-filtered data instead of filtering again
+    setTimeout(() => {
+      if (type === 'all') {
+        // Apply text filter to tech SCAs if needed
+        let filtered = techScas;
+        if (filteringText) {
+          filtered = applyTextFilter(filtered, filteringText);
+        }
+        setFilteredItems(filtered);
+      } else {
+        // Apply text filter to all SCAs if needed
+        let filtered = allScas;
+        if (filteringText) {
+          filtered = applyTextFilter(filtered, filteringText);
+        }
+        setFilteredItems(filtered);
+      }
+      setCurrentPageIndex(1);
+      setIsFiltering(false);
+    }, 10);
+  }, [filteringText, techScas, allScas, applyTextFilter]);
   
-  // Now we can use handleFiltering in useEffect
+  // Memoized sort function to avoid recreating it on each render
+  const sortItems = useCallback((items: ScaType[]) => {
+    return [...items].sort((a, b) => {
+      // First compare partners
+      const aPartner = String(a.partner || '').toLowerCase();
+      const bPartner = String(b.partner || '').toLowerCase();
+      const partnerComparison = aPartner.localeCompare(bPartner);
+      
+      // If partners are the same, compare contract names
+      if (partnerComparison === 0) {
+        const aContract = String(a.contract_name || '').toLowerCase();
+        const bContract = String(b.contract_name || '').toLowerCase();
+        return aContract.localeCompare(bContract);
+      }
+      
+      return partnerComparison;
+    });
+  }, []);
+
+  // Load and pre-filter data
   useEffect(() => {
     const subscription = client.models.Sca.observeQuery().subscribe({
       next: ({ items }: { items: ScaType[] }) => {
         const newItems = serializeData([...items]);
-        // Sort items by partner and then by contract_name (SCA)
-        const sortedItems = [...newItems].sort((a, b) => {
-          // First compare partners
-          const aPartner = String(a.partner || '').toLowerCase();
-          const bPartner = String(b.partner || '').toLowerCase();
-          const partnerComparison = aPartner.localeCompare(bPartner);
-          
-          // If partners are the same, compare contract names
-          if (partnerComparison === 0) {
-            const aContract = String(a.contract_name || '').toLowerCase();
-            const bContract = String(b.contract_name || '').toLowerCase();
-            return aContract.localeCompare(bContract);
-          }
-          
-          return partnerComparison;
-        });
-        setScas(sortedItems);
         
-        // Apply current filters to the new data
-        handleFiltering(filteringText, filterType);
+        // Debug: Log the is_tech values
+        console.log("SCA items with is_tech values:", 
+          newItems.map(item => ({ 
+            id: item.id, 
+            name: item.contract_name, 
+            is_tech: item.is_tech
+          }))
+        );
+        
+        const sortedItems = sortItems(newItems);
+        
+        // Pre-filter the data - use strict comparison with 'true'
+        const techItems = sortedItems.filter(item => item.is_tech === 'true');
+        
+        // Debug: Log the filtered tech items
+        console.log("Tech items count:", techItems.length);
+        console.log("Tech items:", techItems.map(item => item.contract_name));
+        
+        setScas(sortedItems);
+        setTechScas(techItems);
+        setAllScas(sortedItems);
+        
+        // Apply initial filter based on current filter type
+        if (filterType === 'all') {
+          setFilteredItems(applyTextFilter(techItems, filteringText));
+        } else {
+          setFilteredItems(applyTextFilter(sortedItems, filteringText));
+        }
+        
         setIsLoading(false);
       }
     });
   
     return () => subscription.unsubscribe();
-  }, [handleFiltering, filteringText, filterType]);
+  }, [sortItems, filterType, filteringText, applyTextFilter]);
   
-  // Custom filter component with text filter and segmented control
+  // Custom filter component with text filter, segmented control, and loading indicator
   const CustomFilter = () => (
     <div style={{ display: 'flex', alignItems: 'center' }}>
-      <div style={{ marginRight: '16px' }}>
+      <div style={{ marginRight: '16px', display: 'flex', alignItems: 'center' }}>
         <SegmentedControl
           selectedId={filterType}
           onChange={({ detail }) => handleFilterTypeChange(detail.selectedId as 'all' | 'biz')}
@@ -214,14 +302,19 @@ function ScaList() {
             { id: 'biz', text: 'All SCAs' }
           ]}
         />
+        {isFiltering && (
+          <div style={{ marginLeft: '8px' }}>
+            <Spinner size="normal" />
+          </div>
+        )}
       </div>
       <div style={{ width: '50%' }}>
         <TextFilter
           filteringPlaceholder="Find SCA"
           filteringText={filteringText || ''}
-          onChange={({ detail }) => handleFiltering(detail.filteringText)}
+          onChange={({ detail }) => debouncedTextFilter(detail.filteringText)}
           countText={filteredItems ? `${filteredItems.length} matches` : "0 matches"}
-          disabled={false}
+          disabled={isFiltering}
         />
       </div>
     </div>
