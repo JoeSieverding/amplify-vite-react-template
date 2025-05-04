@@ -78,6 +78,7 @@ interface MilestoneStatusType {
 }
 
 interface FormError {
+  [key: string]: string | undefined;
   milestone_type?: string;
   milestone_description?: string;
   milestone_goal?: string;
@@ -131,44 +132,110 @@ const getTodayFormatted = (): string => {
   const year = String(today.getFullYear()).slice(-2);
   return `${month}/${day}/${year}`;
 };
-// Helper function to validate and format date in MM/DD/YY format
-const validateAndFormatDate = (dateString: string | null | undefined): { 
+// Enhanced date validation and formatting function
+const validateAndFormatDate = (dateString: string): { 
   isValid: boolean; 
   formattedDate: string | null;
   errorMessage?: string;
 } => {
-  if (!dateString) return { isValid: true, formattedDate: null };
-  // Check for MM/DD/YY format
-  const regex = /^(0[1-9]|1[0-2])\/(0[1-9]|[12][0-9]|3[01])\/\d{2}$/;
-  if (!regex.test(dateString)) {
+  if (!dateString) {
+    return { isValid: false, formattedDate: null, errorMessage: "Date is required" };
+  }
+
+  // First, check if it's already in MM/DD/YY format
+  const mmddyyRegex = /^(0[1-9]|1[0-2])\/(0[1-9]|[12][0-9]|3[1])\/(19|20)?\d{2}$/;
+  if (mmddyyRegex.test(dateString)) {
+    return { isValid: true, formattedDate: dateString };
+  }
+
+  // Try to parse various date formats
+  try {
+    // Try MM-DD-YY or MM-DD-YYYY
+    const dashFormat = /^(\d{1,2})-(\d{1,2})-(\d{2}|\d{4})$/;
+    if (dashFormat.test(dateString)) {
+      const [month, day, year] = dateString.split('-');
+      const formattedMonth = month.padStart(2, '0');
+      const formattedDay = day.padStart(2, '0');
+      let formattedYear = year;
+      if (year.length === 4) {
+        formattedYear = year.substring(2);
+      }
+      return { 
+        isValid: true, 
+        formattedDate: `${formattedMonth}/${formattedDay}/${formattedYear}` 
+      };
+    }
+
+    // Try YYYY-MM-DD (ISO format)
+    const isoFormat = /^(\d{4})-(\d{1,2})-(\d{1,2})$/;
+    if (isoFormat.test(dateString)) {
+      const [year, month, day] = dateString.split('-');
+      const formattedMonth = month.padStart(2, '0');
+      const formattedDay = day.padStart(2, '0');
+      const formattedYear = year.substring(2); // Take last 2 digits
+      return { 
+        isValid: true, 
+        formattedDate: `${formattedMonth}/${formattedDay}/${formattedYear}` 
+      };
+    }
+
+    // Try MM/DD without year (assume current year)
+    const noYearFormat = /^(\d{1,2})\/(\d{1,2})$/;
+    if (noYearFormat.test(dateString)) {
+      const [month, day] = dateString.split('/');
+      const formattedMonth = month.padStart(2, '0');
+      const formattedDay = day.padStart(2, '0');
+      const currentYear = new Date().getFullYear().toString().substring(2);
+      return { 
+        isValid: true, 
+        formattedDate: `${formattedMonth}/${formattedDay}/${currentYear}` 
+      };
+    }
+
+    // Try numeric only (MMDDYY)
+    const numericFormat = /^(\d{6})$/;
+    if (numericFormat.test(dateString)) {
+      const month = dateString.substring(0, 2);
+      const day = dateString.substring(2, 4);
+      const year = dateString.substring(4, 6);
+      // Validate month and day
+      const monthNum = parseInt(month);
+      const dayNum = parseInt(day);
+      if (monthNum >= 1 && monthNum <= 12 && dayNum >= 1 && dayNum <= 31) {
+        return { 
+          isValid: true, 
+          formattedDate: `${month}/${day}/${year}` 
+        };
+      }
+    }
+
+    // Try to parse as a JavaScript Date
+    const date = new Date(dateString);
+    if (!isNaN(date.getTime())) {
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const day = date.getDate().toString().padStart(2, '0');
+      const year = date.getFullYear().toString().substring(2);
+      return { 
+        isValid: true, 
+        formattedDate: `${month}/${day}/${year}` 
+      };
+    }
+
+    // If we got here, we couldn't parse the date
     return { 
       isValid: false, 
-      formattedDate: null,
-      errorMessage: "Date must be in MM/DD/YY format" 
+      formattedDate: null, 
+      errorMessage: "Please enter a valid date in MM/DD/YY format" 
     };
-  }
-  // Validate the date is real
-  const [month, day, year] = dateString.split('/').map(num => parseInt(num, 10));
-  const date = new Date(2000 + year, month - 1, day);
-  const isValid = date.getMonth() === month - 1 && date.getDate() === day;
-  if (!isValid) {
+  } catch (error) {
     return { 
       isValid: false, 
-      formattedDate: null,
-      errorMessage: "Please enter a valid date" 
+      formattedDate: null, 
+      errorMessage: "Please enter a valid date in MM/DD/YY format" 
     };
   }
-  // Format the date as MM/DD/YY
-  const formattedMonth = month.toString().padStart(2, '0');
-  const formattedDay = day.toString().padStart(2, '0');
-  const formattedYear = (year % 100).toString().padStart(2, '0');
-  
-  return { 
-    isValid: true, 
-    formattedDate: `${formattedMonth}/${formattedDay}/${formattedYear}`,
-    errorMessage: undefined
-  };
 };
+
 
 function MilestoneUpdateForm() {
   const { user } = useAuthenticator((context) => [context.user]);
@@ -180,19 +247,6 @@ function MilestoneUpdateForm() {
   const [showAlert, setShowAlert] = useState(false);
   const [alertType, setAlertType] = useState<"success" | "error" | "warning" | "info">("success");
   const [alertMessage, setAlertMessage] = useState("");
-  const getUserEmail = useCallback(() => {
-    return user?.signInDetails?.loginId || "Unknown User";
-  }, [user]);
-  const showNotification = (type: "success" | "error" | "warning" | "info", message: string) => {
-    setAlertType(type);
-    setAlertMessage(message);
-    setShowAlert(true);
-    
-    // Automatically hide the alert after 5 seconds
-    setTimeout(() => {
-      setShowAlert(false);
-    }, 5000);
-  };
   // Store the original milestone data for comparison
   const originalMilestoneData = useMemo(() => ({
     milestone_type: item.milestone_type,
@@ -207,8 +261,24 @@ function MilestoneUpdateForm() {
     calc_rag_type: item.calc_rag_type,
     is_rag_override: Boolean(item.is_rag_override),
     milestone_start_date: item.milestone_start_date,
-    comments: item.comments
+    comments: item.comments,
+    is_baselined: Boolean(item.is_baselined)
   }), [item]); // Only recreate when item changes
+  const [lastSavedData, setLastSavedData] = useState(originalMilestoneData);
+  const getUserEmail = useCallback(() => {
+    return user?.signInDetails?.loginId || "Unknown User";
+  }, [user]);
+  const showNotification = (type: "success" | "error" | "warning" | "info", message: string) => {
+    setAlertType(type);
+    setAlertMessage(message);
+    setShowAlert(true);
+    
+    // Automatically hide the alert after 5 seconds
+    setTimeout(() => {
+      setShowAlert(false);
+    }, 5000);
+  };
+  
   const [milestoneData, setMilestoneData] = useState<MilestoneFormData>({
     id: item.id,
     milestone_type: item.milestone_type,
@@ -235,7 +305,8 @@ function MilestoneUpdateForm() {
       if (isEmpty(milestoneData.milestone_type)) errors.milestone_type = "Milestone type is required";
       if (isEmpty(milestoneData.milestone_description)) errors.milestone_description = "Description is required";
       if (isEmpty(milestoneData.milestone_goal)) errors.milestone_goal = "Goal is required";
-      if (isEmpty(milestoneData.targeted_date)) errors.targeted_date = "Target date is required";
+      if (isEmpty(milestoneData.targeted_date)) errors.targeted_date = "Due date is required";
+      if (isEmpty(milestoneData.milestone_start_date)) errors.milestone_start_date = "Start date is required";
       if (isEmpty(milestoneData.input_type)) errors.input_type = "Input type is required";
       if (isEmpty(milestoneData.kpi_value)) errors.kpi_value = "KPI value is required";
       return errors;
@@ -244,6 +315,7 @@ function MilestoneUpdateForm() {
       milestoneData.milestone_description,
       milestoneData.milestone_goal,
       milestoneData.targeted_date,
+      milestoneData.milestone_start_date,
       milestoneData.input_type,
       milestoneData.kpi_value
     ]);
@@ -445,6 +517,68 @@ const isStatusFormValid = useCallback(() => {
     // For other types, direct comparison
     return a === b;
   }
+  
+  // Function to check if there are date validation errors
+const hasDateValidationErrors = useCallback(() => {
+  if (milestoneData.milestone_start_date && milestoneData.targeted_date) {
+    const startDateResult = validateAndFormatDate(milestoneData.milestone_start_date);
+    const targetDateResult = validateAndFormatDate(milestoneData.targeted_date);
+    
+    if (startDateResult.isValid && targetDateResult.isValid) {
+      // Parse dates for comparison
+      const [startMonth, startDay, startYear] = milestoneData.milestone_start_date.split('/').map(num => parseInt(num, 10));
+      const [targetMonth, targetDay, targetYear] = milestoneData.targeted_date.split('/').map(num => parseInt(num, 10));
+      
+      const startDate = new Date(2000 + startYear, startMonth - 1, startDay);
+      const targetDate = new Date(2000 + targetYear, targetMonth - 1, targetDay);
+      
+      if (startDate > targetDate) {
+        // Set the error message in form errors
+        setFormErrors(prev => ({
+          ...prev,
+          milestone_start_date: "Start Date must be before Due Date"
+        }));
+        return true; // There is a date validation error
+      }
+    }
+  }
+  return false; // No date validation errors
+}, [milestoneData.milestone_start_date, milestoneData.targeted_date]);
+
+// Effect to validate dates whenever they change
+useEffect(() => {
+  if (milestoneData.milestone_start_date && milestoneData.targeted_date) {
+    const startDateResult = validateAndFormatDate(milestoneData.milestone_start_date);
+    const targetDateResult = validateAndFormatDate(milestoneData.targeted_date);
+    
+    if (startDateResult.isValid && targetDateResult.isValid) {
+      // Parse dates for comparison
+      const [startMonth, startDay, startYear] = milestoneData.milestone_start_date.split('/').map(num => parseInt(num, 10));
+      const [targetMonth, targetDay, targetYear] = milestoneData.targeted_date.split('/').map(num => parseInt(num, 10));
+      
+      const startDate = new Date(2000 + startYear, startMonth - 1, startDay);
+      const targetDate = new Date(2000 + targetYear, targetMonth - 1, targetDay);
+      
+      if (startDate > targetDate) {
+        setFormErrors(prev => ({
+          ...prev,
+          milestone_start_date: "Start Date must be before Due Date"
+        }));
+      } else {
+        // Clear the error if dates are valid
+        setFormErrors(prev => {
+          const newErrors = {...prev};
+          if (newErrors.milestone_start_date === "Start Date must be before Due Date") {
+            delete newErrors.milestone_start_date;
+          }
+          return newErrors;
+        });
+      }
+    }
+  }
+}, [milestoneData.milestone_start_date, milestoneData.targeted_date]);
+ 
+
   const handleSaveStatusUpdate = async () => {
     // Use the dedicated status validation function
     if (!validateStatusForm()) {
@@ -497,6 +631,15 @@ const isStatusFormValid = useCallback(() => {
         return newErrors;
       });
       
+      // Update lastSavedData to include the new calc_rag_type value
+      setLastSavedData(prev => ({
+        ...prev,
+        calc_rag_type: milestoneData.calc_rag_type
+      }));
+
+      // Reset hasChanges flag since we've updated lastSavedData
+      setHasChanges(false);
+
       // Show success message
       showNotification("success", "Milestone saved successfully.");
     } catch (error) {
@@ -507,42 +650,59 @@ const isStatusFormValid = useCallback(() => {
     }
   };
   
-const handleSubmitMilestone = async () => {
-  // Validate milestone form
-  if (!validateMilestoneForm()) {
-    return;
-  }
-  setIsLoading(true);
-  try {
-    // Update the milestone
-    await client.models.Milestone.update({
-      id: milestoneData.id,
-      milestone_type: milestoneData.milestone_type,
-      milestone_description: milestoneData.milestone_description,
-      is_tech: milestoneData.is_tech,
-      is_currency: milestoneData.is_currency,
-      kpi_value: milestoneData.kpi_value,
-      targeted_date: milestoneData.targeted_date,
-      input_type: milestoneData.input_type,
-      milestone_goal: milestoneData.milestone_goal,
-      latest_actuals: milestoneData.latest_actuals,
-      calc_rag_type: milestoneData.calc_rag_type,
-      is_rag_override: milestoneData.is_rag_override,
-      updated_last_by: getUserEmail(),
-      is_baselined: milestoneData.is_baselined,
-      milestone_start_date: milestoneData.milestone_start_date,
-      comments: milestoneData.comments
-    });
-    // Show success message
-    showNotification("success", "Milestone updated successfully.");
-    // navigate('/scamilestonelist', { state: { sca } });
-  } catch (error) {
-    console.error('Error updating milestone:', error);
-    showNotification("error", "Milestone failed to update.");
-  } finally {
-    setIsLoading(false);
-  }
-};
+  const handleSubmitMilestone = async () => {
+    // Use validateMilestoneForm to check for all validation errors
+    if (!validateMilestoneForm()) {
+      // If there are validation errors, show a notification
+      if (formErrors.milestone_start_date === "Start Date must be before Due Date") {
+        showNotification("error", "Start Date must be before Due Date. Please correct the dates.");
+      } else {
+        // Find the first error to show in the notification
+        const firstErrorField = Object.keys(formErrors)[0];
+        const errorMessage = formErrors[firstErrorField];
+        showNotification("error", errorMessage || "Please fill in all required fields.");
+      }
+      return;
+    }
+    
+    setIsLoading(true);
+    try {
+      // Update the milestone
+      await client.models.Milestone.update({
+        id: milestoneData.id,
+        milestone_type: milestoneData.milestone_type,
+        milestone_description: milestoneData.milestone_description,
+        is_tech: milestoneData.is_tech,
+        is_currency: milestoneData.is_currency,
+        kpi_value: milestoneData.kpi_value,
+        targeted_date: milestoneData.targeted_date,
+        input_type: milestoneData.input_type,
+        milestone_goal: milestoneData.milestone_goal,
+        latest_actuals: milestoneData.latest_actuals,
+        calc_rag_type: milestoneData.calc_rag_type,
+        is_rag_override: milestoneData.is_rag_override,
+        updated_last_by: getUserEmail(),
+        is_baselined: milestoneData.is_baselined,
+        milestone_start_date: milestoneData.milestone_start_date,
+        comments: milestoneData.comments
+      });
+      // Update the last saved data to the current milestone data
+      setLastSavedData({...milestoneData});
+      
+      // Reset the hasChanges flag
+      setHasChanges(false);
+  
+      showNotification("success", "Milestone updated successfully.");
+      // navigate('/scamilestonelist', { state: { sca } });
+    } catch (error) {
+      console.error('Error updating milestone:', error);
+      showNotification("error", "Milestone failed to update.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  
 const validateStatusForm = useCallback(() => {
   const errors: FormError = {};
   
@@ -692,23 +852,23 @@ const statusHistoryColumns = [
   }, [milestoneData.milestone_type, milestoneData.milestone_description, milestoneData.milestone_goal, 
     milestoneData.targeted_date, milestoneData.input_type, milestoneData.kpi_value, validateFormFields]);
   
-  // Check for changes in milestone summary data
 // Check for changes in milestone summary data
 useEffect(() => {
   const changes = {
-    milestone_type: !areValuesEqual<string>(milestoneData.milestone_type, originalMilestoneData.milestone_type),
-    milestone_description: !areValuesEqual<string>(milestoneData.milestone_description, originalMilestoneData.milestone_description),
-    is_tech: !areValuesEqual<boolean>(milestoneData.is_tech, originalMilestoneData.is_tech),
-    is_currency: !areValuesEqual<boolean>(milestoneData.is_currency, originalMilestoneData.is_currency),
-    kpi_value: !areValuesEqual<string>(milestoneData.kpi_value, originalMilestoneData.kpi_value),
-    targeted_date: !areValuesEqual<string>(milestoneData.targeted_date, originalMilestoneData.targeted_date),
-    input_type: !areValuesEqual<string>(milestoneData.input_type, originalMilestoneData.input_type),
-    milestone_goal: !areValuesEqual<string>(milestoneData.milestone_goal, originalMilestoneData.milestone_goal),
-    latest_actuals: !areValuesEqual<string>(milestoneData.latest_actuals, originalMilestoneData.latest_actuals),
-    calc_rag_type: !areValuesEqual<string>(milestoneData.calc_rag_type, originalMilestoneData.calc_rag_type),
-    is_rag_override: !areValuesEqual<boolean>(milestoneData.is_rag_override, originalMilestoneData.is_rag_override),
-    milestone_start_date: !areValuesEqual<string>(milestoneData.milestone_start_date, originalMilestoneData.milestone_start_date),
-    comments: !areValuesEqual<string>(milestoneData.comments, originalMilestoneData.comments)
+    milestone_type: !areValuesEqual<string>(milestoneData.milestone_type, lastSavedData.milestone_type),
+    milestone_description: !areValuesEqual<string>(milestoneData.milestone_description, lastSavedData.milestone_description),
+    is_tech: !areValuesEqual<boolean>(milestoneData.is_tech, lastSavedData.is_tech),
+    is_currency: !areValuesEqual<boolean>(milestoneData.is_currency, lastSavedData.is_currency),
+    kpi_value: !areValuesEqual<string>(milestoneData.kpi_value, lastSavedData.kpi_value),
+    targeted_date: !areValuesEqual<string>(milestoneData.targeted_date, lastSavedData.targeted_date),
+    input_type: !areValuesEqual<string>(milestoneData.input_type, lastSavedData.input_type),
+    milestone_goal: !areValuesEqual<string>(milestoneData.milestone_goal, lastSavedData.milestone_goal),
+    latest_actuals: !areValuesEqual<string>(milestoneData.latest_actuals, lastSavedData.latest_actuals),
+    calc_rag_type: !areValuesEqual<string>(milestoneData.calc_rag_type, lastSavedData.calc_rag_type),
+    is_rag_override: !areValuesEqual<boolean>(milestoneData.is_rag_override, lastSavedData.is_rag_override),
+    milestone_start_date: !areValuesEqual<string>(milestoneData.milestone_start_date, lastSavedData.milestone_start_date),
+    comments: !areValuesEqual<string>(milestoneData.comments, lastSavedData.comments),
+    is_baselined: !areValuesEqual<boolean>(milestoneData.is_baselined, lastSavedData.is_baselined)
   };
   
   const hasMilestoneChanges = Object.values(changes).some(changed => changed);
@@ -731,9 +891,11 @@ useEffect(() => {
   milestoneData.is_rag_override,
   milestoneData.milestone_start_date,
   milestoneData.comments,
-  originalMilestoneData,
+  milestoneData.is_baselined,
+  lastSavedData, // Changed from originalMilestoneData to lastSavedData
   hasChanges
 ]);
+
 
   const ragTypeOptions = [
     { value: "Green", label: "Green" },
@@ -762,22 +924,22 @@ useEffect(() => {
   const handleReset = () => {
     setMilestoneData({
       id: item.id,
-      milestone_type: item.milestone_type,
-      milestone_description: item.milestone_description,
-      is_tech: Boolean(item.is_tech),
-      is_currency: Boolean(item.is_currency),
-      kpi_value: item.kpi_value,
-      targeted_date: item.targeted_date,
-      input_type: item.input_type,
-      milestone_goal: item.milestone_goal,
-      latest_actuals: item.latest_actuals,
-      calc_rag_type: item.calc_rag_type,
-      is_rag_override: Boolean(item.is_rag_override),
-      updated_last_by: item.updated_last_by,
+      milestone_type: lastSavedData.milestone_type,
+      milestone_description: lastSavedData.milestone_description,
+      is_tech: Boolean(lastSavedData.is_tech),
+      is_currency: Boolean(lastSavedData.is_currency),
+      kpi_value: lastSavedData.kpi_value,
+      targeted_date: lastSavedData.targeted_date,
+      input_type: lastSavedData.input_type,
+      milestone_goal: lastSavedData.milestone_goal,
+      latest_actuals: lastSavedData.latest_actuals,
+      calc_rag_type: lastSavedData.calc_rag_type,
+      is_rag_override: Boolean(lastSavedData.is_rag_override),
+      updated_last_by: getUserEmail(),
       scaId: item.scaId || sca.id,
-      is_baselined: Boolean(item.is_baselined),
-      milestone_start_date: item.milestone_start_date,
-      comments: item.comments
+      is_baselined: Boolean(lastSavedData.is_baselined),
+      milestone_start_date: lastSavedData.milestone_start_date,
+      comments: lastSavedData.comments
     });
     
     setFormErrors({});
@@ -848,7 +1010,7 @@ useEffect(() => {
                       variant="primary" 
                       onClick={handleSubmitMilestone} 
                       loading={isLoading}
-                      disabled={!hasChanges}
+                      disabled={!hasChanges || isLoading || Object.keys(formErrors).length > 0 || hasDateValidationErrors()}
                     >
                       Save
                     </Button>
@@ -935,7 +1097,7 @@ useEffect(() => {
 
     <FormField
       label="Start Date"
-      errorText={formErrors.start_date}
+      errorText={formErrors.milestone_start_date}
       constraintText="MM/DD/YY"
       description={
         milestoneData.milestone_start_date && milestoneData.targeted_date && 
@@ -957,27 +1119,29 @@ useEffect(() => {
       }
     >
       <div style={{ width: '100px' }}>
-        <Input
-          value={milestoneData.milestone_start_date || ''}
-          placeholder="MM/DD/YY"
-          onChange={({ detail }) => {
-            setMilestoneData(prev => ({ ...prev, milestone_start_date: detail.value || null }));
-          }}          
-          onBlur={() => {
-            if (milestoneData.milestone_start_date) {
-              const { isValid, formattedDate, errorMessage } = validateAndFormatDate(milestoneData.milestone_start_date);
-              if (isValid) {
-                setMilestoneData(prev => ({ ...prev, milestone_start_date: formattedDate }));
-                setFormErrors(prev => ({ ...prev, start_date: undefined }));
-              } else {
-                setFormErrors(prev => ({ ...prev, start_date: errorMessage }));
-              }
-            }
-          }}
-          
-          disabled={isFormDisabled()}
-        />
-      </div>
+    <Input
+      value={milestoneData.milestone_start_date || ''}
+      placeholder="MM/DD/YY"
+      onChange={({ detail }) => {
+        setMilestoneData(prev => ({ ...prev, milestone_start_date: detail.value || null }));
+      }}
+      onBlur={() => {
+        if (milestoneData.milestone_start_date) {
+          const { isValid, formattedDate, errorMessage } = validateAndFormatDate(milestoneData.milestone_start_date);
+          if (isValid) {
+            setMilestoneData(prev => ({ ...prev, milestone_start_date: formattedDate }));
+            setFormErrors(prev => ({ ...prev, milestone_start_date: undefined }));
+          } else {
+            setFormErrors(prev => ({ ...prev, milestone_start_date: errorMessage }));
+          }
+        } else {
+          // Show error if field is empty
+          setFormErrors(prev => ({ ...prev, milestone_start_date: "Start date is required" }));
+        }
+      }}
+      disabled={isFormDisabled()}
+    />
+  </div>
     </FormField>
 
     <FormField
