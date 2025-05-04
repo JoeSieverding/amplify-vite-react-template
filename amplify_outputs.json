@@ -360,6 +360,13 @@
               "isRequired": false,
               "attributes": []
             },
+            "is_tech": {
+              "name": "is_tech",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
             "milestones": {
               "name": "milestones",
               "isArray": true,

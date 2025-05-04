@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, useMemo } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import type { Schema } from "../../../amplify/data/resource";
 import { generateClient } from "aws-amplify/data";
 import Table from "@cloudscape-design/components/table";
@@ -40,7 +40,7 @@ interface SortingColumn {
 type ScaType = Schema["Sca"]["type"];
 
 function ScaList() {
-  const [scas, setScas] = useState<ScaType[]>([]);
+  const [, setScas] = useState<ScaType[]>([]);
   const [techScas, setTechScas] = useState<ScaType[]>([]);
   const [allScas, setAllScas] = useState<ScaType[]>([]);
   const [selectedItems, setSelectedItems] = useState<ScaType[]>([]);
@@ -55,6 +55,7 @@ function ScaList() {
   const [sortingColumn, setSortingColumn] = useState<SortingColumn>({ sortingField: "partner" });
   const [sortingDescending, setSortingDescending] = useState(false);
   const [filterType, setFilterType] = useState<'all' | 'biz'>('biz'); // Default to 'biz' (All SCAs)
+  const debounceTimeoutRef = useRef<number | null>(null);
   const [preferences, setPreferences] = useState<Preferences>({
     pageSize: 10,
     contentDisplay: [
@@ -186,20 +187,22 @@ function ScaList() {
       console.timeEnd('filter-operation');
       setIsFiltering(false);
     }, 10); // Small delay to allow UI update
-  }, [techScas, allScas, applyTextFilter]);
+  }, [filterType, techScas, allScas, applyTextFilter]);
   
-  // Debounced text filter handler
-  const debouncedTextFilter = useCallback((text: string) => {
-    // Clear any pending debounce
-    if ((window as any).filterDebounceTimeout) {
-      clearTimeout((window as any).filterDebounceTimeout);
-    }
-    
-    // Set a new debounce timeout
-    (window as any).filterDebounceTimeout = setTimeout(() => {
-      handleFiltering(text, filterType);
-    }, 300); // 300ms debounce
-  }, [handleFiltering, filterType]);
+  // Debounced text filter handler with type safety
+const debouncedTextFilter = useCallback((text: string) => {
+  // Clear any pending debounce
+  if (debounceTimeoutRef.current !== null) {
+    clearTimeout(debounceTimeoutRef.current);
+    debounceTimeoutRef.current = null;
+  }
+  
+  // Set a new debounce timeout
+  debounceTimeoutRef.current = window.setTimeout(() => {
+    handleFiltering(text, filterType);
+    debounceTimeoutRef.current = null;
+  }, 300); // 300ms debounce
+}, [handleFiltering, filterType]);
   
   // Handle filter type change with visual feedback
   const handleFilterTypeChange = useCallback((type: 'all' | 'biz') => {
