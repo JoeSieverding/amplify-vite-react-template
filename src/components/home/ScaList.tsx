@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, useRef } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { Schema } from "../../../amplify/data/resource";
 import { generateClient } from "aws-amplify/data";
 import Table from "@cloudscape-design/components/table";
@@ -55,7 +55,6 @@ function ScaList() {
   const [sortingColumn, setSortingColumn] = useState<SortingColumn>({ sortingField: "partner" });
   const [sortingDescending, setSortingDescending] = useState(false);
   const [filterType, setFilterType] = useState<'all' | 'biz'>('biz'); // Default to 'biz' (All SCAs)
-  const debounceTimeoutRef = useRef<number | null>(null);
   const [preferences, setPreferences] = useState<Preferences>({
     pageSize: 10,
     contentDisplay: [
@@ -151,85 +150,24 @@ function ScaList() {
     );
   }, []);
   
-  // Optimized filtering function with visual feedback
-  const handleFiltering = useCallback((text: string = '', type: 'all' | 'biz' = filterType) => {
-    if (text === undefined) {
-      text = '';
-    }
-    
-    // Show filtering indicator
-    setIsFiltering(true);
-    setFilteringText(text);
-    
-    // Use setTimeout to allow UI to update before performing filtering
-    setTimeout(() => {
-      console.time('filter-operation');
-      
-      // Use pre-filtered datasets
-      let filtered: ScaType[];
-      
-      if (type === 'all') {
-        // For "Has Tech" filter, use pre-filtered tech SCAs
-        filtered = techScas;
-      } else {
-        // For "All SCAs", use all SCAs
-        filtered = allScas;
-      }
-      
-      // Apply text filter if needed
-      if (text) {
-        filtered = applyTextFilter(filtered, text);
-      }
-      
-      setFilteredItems(filtered);
-      setCurrentPageIndex(1);
-      
-      console.timeEnd('filter-operation');
-      setIsFiltering(false);
-    }, 10); // Small delay to allow UI update
-  }, [filterType, techScas, allScas, applyTextFilter]);
+
   
-  // Debounced text filter handler with type safety
-const debouncedTextFilter = useCallback((text: string) => {
-  // Clear any pending debounce
-  if (debounceTimeoutRef.current !== null) {
-    clearTimeout(debounceTimeoutRef.current);
-    debounceTimeoutRef.current = null;
-  }
+  // Text filter handler
+const handleTextFilter = useCallback((text: string) => {
+  setFilteringText(text);
+}, []);
   
-  // Set a new debounce timeout
-  debounceTimeoutRef.current = window.setTimeout(() => {
-    handleFiltering(text, filterType);
-    debounceTimeoutRef.current = null;
-  }, 300); // 300ms debounce
-}, [handleFiltering, filterType]);
-  
-  // Handle filter type change with visual feedback
+  // Handle filter type change
   const handleFilterTypeChange = useCallback((type: 'all' | 'biz') => {
+    // Only set isFiltering for segment control changes, not for text filter
     setIsFiltering(true);
     setFilterType(type);
     
-    // Use pre-filtered data instead of filtering again
+    // Reset isFiltering after a short delay
     setTimeout(() => {
-      if (type === 'all') {
-        // Apply text filter to tech SCAs if needed
-        let filtered = techScas;
-        if (filteringText) {
-          filtered = applyTextFilter(filtered, filteringText);
-        }
-        setFilteredItems(filtered);
-      } else {
-        // Apply text filter to all SCAs if needed
-        let filtered = allScas;
-        if (filteringText) {
-          filtered = applyTextFilter(filtered, filteringText);
-        }
-        setFilteredItems(filtered);
-      }
-      setCurrentPageIndex(1);
       setIsFiltering(false);
-    }, 10);
-  }, [filteringText, techScas, allScas, applyTextFilter]);
+    }, 500);
+  }, []);
   
   // Memoized sort function to avoid recreating it on each render
   const sortItems = useCallback((items: ScaType[]) => {
@@ -249,8 +187,34 @@ const debouncedTextFilter = useCallback((text: string) => {
       return partnerComparison;
     });
   }, []);
+  
+  // Effect to handle filtering when filteringText or filterType changes
+  useEffect(() => {
+    // Don't filter during initial load
+    if (isLoading) return;
+    
+    // Use pre-filtered datasets
+    let filtered: ScaType[];
+    
+    if (filterType === 'all') {
+      // For "Has Tech" filter, use pre-filtered tech SCAs
+      filtered = techScas;
+    } else {
+      // For "All SCAs", use all SCAs
+      filtered = allScas;
+    }
+    
+    // Apply text filter if needed
+    if (filteringText) {
+      filtered = applyTextFilter(filtered, filteringText);
+    }
+    
+    setFilteredItems(filtered);
+    setCurrentPageIndex(1);
+    
+  }, [filteringText, filterType, techScas, allScas, applyTextFilter, isLoading]);
 
-  // Load and pre-filter data
+  // Load data
   useEffect(() => {
     const subscription = client.models.Sca.observeQuery().subscribe({
       next: ({ items }: { items: ScaType[] }) => {
@@ -290,7 +254,7 @@ const debouncedTextFilter = useCallback((text: string) => {
     });
   
     return () => subscription.unsubscribe();
-  }, [sortItems, filterType, filteringText, applyTextFilter]);
+  }, [sortItems, filterType, applyTextFilter, filteringText]);
   
   // Custom filter component with text filter, segmented control, and loading indicator
   const CustomFilter = () => (
@@ -315,9 +279,8 @@ const debouncedTextFilter = useCallback((text: string) => {
         <TextFilter
           filteringPlaceholder="Find SCA"
           filteringText={filteringText || ''}
-          onChange={({ detail }) => debouncedTextFilter(detail.filteringText)}
+          onChange={({ detail }) => handleTextFilter(detail.filteringText)}
           countText={filteredItems ? `${filteredItems.length} matches` : "0 matches"}
-          disabled={isFiltering}
         />
       </div>
     </div>
