@@ -34,6 +34,9 @@ async function initializeApp() {
   document.title = "SCA Suite";
   root.render(
     <Authenticator
+      // Hide sign up option to prevent self-registration
+      hideSignUp={true}
+      // The following settings are kept but won't be used since sign-up is hidden
       signUpAttributes={['email']}
       formFields={{
         signUp: {
@@ -42,17 +45,6 @@ async function initializeApp() {
             label: "Email",
             isRequired: true
           }
-        }
-      }}
-      services={{
-        validateCustomSignUp: async (formData) => {
-          const email = formData.email;
-          if (!email.endsWith('@amazon.com')) {
-            return {
-              email: 'Only @amazon.com email addresses are allowed'
-            };
-          }
-          return undefined; // or return {} if you want to indicate validation passed
         }
       }}
     >
