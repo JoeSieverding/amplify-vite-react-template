@@ -102,7 +102,8 @@ const FormInputField = ({
   isDate = false, 
   isSegmentedControl = false,
   name,
-  formState 
+  formState,
+  onInitialFormat = null
 }) => {
   const [isUserModified, setIsUserModified] = React.useState(false);
   const [isFocused, setIsFocused] = React.useState(false);
@@ -113,12 +114,17 @@ const FormInputField = ({
     setLocalValue(value);
   }, [value]);
 
-  // Handle date formatting for initial load
+  // Handle date formatting for initial load without triggering form change
   React.useEffect(() => {
     if (isDate && value && !isUserModified) {
       const formattedDate = formatDate(value);
-      if (!formattedDate.error) {
-        onChange(formattedDate.value);
+      if (!formattedDate.error && formattedDate.value !== value) {
+        // Use the special handler for initial formatting that doesn't mark the form as changed
+        if (onInitialFormat) {
+          onInitialFormat(name, formattedDate.value);
+        } else {
+          onChange(formattedDate.value);
+        }
       }
     }
   }, []);
@@ -283,7 +289,30 @@ export default function ScaUpdateForm({ sca }) {
   const navigate = useNavigate();
   const [localSca, setLocalSca] = React.useState(sca);
   const [milestones, setMilestones] = React.useState([]);
+  
+  // Add state to track if form has been modified
   const [isFormChanged, setIsFormChanged] = React.useState(false);
+  
+  // Store original form data for comparison and reset
+  const [initialFormState, setInitialFormState] = React.useState({
+    partner: sca?.partner || "",
+    start_date: sca?.start_date || "",
+    end_date: sca?.end_date || "",
+    contract_name: sca?.contract_name || "",
+    contract_description: sca?.contract_description || "",
+    contract_type: sca?.contract_type || "",
+    contract_status: sca?.contract_status || "",
+    contract_comments: sca?.contract_comments || "",
+    contract_aws_contributions: sca?.contract_aws_contributions || "",
+    contract_partner_contributions: sca?.contract_partner_contributions || "",
+    contract_time_based_targets: sca?.contract_time_based_targets || "",
+    contract_primary_industry: sca?.contract_primary_industry || "",
+    contract_overall_status: sca?.contract_overall_status || "",
+    contract_theme: sca?.contract_theme || "",
+    primary_use_cases: sca?.primary_use_cases || "",
+    is_tech: sca?.is_tech || "false",
+    contract_spcg_id: sca?.contract_spcg_id || ""
+  });
 
   // Combined form state
   const [formState, setFormState] = React.useState({
@@ -306,35 +335,63 @@ export default function ScaUpdateForm({ sca }) {
     contract_spcg_id: sca?.contract_spcg_id || ""
   });
 
-  const updateField = (field, value) => {
+  // Handle initial date formatting without marking form as changed
+  const handleInitialFormat = (field, value) => {
     setFormState(prev => ({ ...prev, [field]: value }));
-    setIsFormChanged(true);
+    setInitialFormState(prev => ({ ...prev, [field]: value }));
   };
 
+  // Update field and mark form as changed
+  const updateField = (field, value) => {
+    setFormState(prev => ({ ...prev, [field]: value }));
+    
+    // Check if the value is actually different from the initial state
+    if (value !== initialFormState[field]) {
+      setIsFormChanged(true);
+    } else {
+      // Check if any other fields are different from initial state
+      const otherFieldsChanged = Object.keys(formState).some(
+        key => key !== field && formState[key] !== initialFormState[key]
+      );
+      setIsFormChanged(otherFieldsChanged);
+    }
+  };
+
+  // Reset form to original values
   const resetStateValues = () => {
     if (localSca) {
-      setFormState({
-        partner: localSca.partner || "",
-        start_date: localSca.start_date || "",
-        end_date: localSca.end_date || "",
-        contract_name: localSca.contract_name || "",
-        contract_description: localSca.contract_description || "",
-        contract_type: localSca.contract_type || "",
-        contract_status: localSca.contract_status || "",
-        contract_comments: localSca.contract_comments || "",
-        contract_aws_contributions: localSca.contract_aws_contributions || "",
-        contract_partner_contributions: localSca.contract_partner_contributions || "",
-        contract_time_based_targets: localSca.contract_time_based_targets || "",
-        contract_primary_industry: localSca.contract_primary_industry || "",
-        contract_overall_status: localSca.contract_overall_status || "",
-        contract_theme: localSca.contract_theme || "",
-        primary_use_cases: localSca.primary_use_cases || "",
-        is_tech: localSca.is_tech || "false",
-        contract_spcg_id: localSca.contract_spcg_id || ""
-      });
+      setFormState({...initialFormState});
       setIsFormChanged(false);
     }
   };
+
+  // Load milestones when component mounts
+  React.useEffect(() => {
+    const loadMilestones = async () => {
+      if (!sca?.id) return;
+
+      try {
+        const milestoneSubscription = client.models.Milestone.observeQuery({
+          filter: { scaId: { eq: sca.id } }
+        }).subscribe({
+          next: ({ items }) => {
+            setMilestones(items);
+          },
+          error: (error) => {
+            console.error('Error fetching milestones:', error);
+          }
+        });
+
+        return () => {
+          milestoneSubscription.unsubscribe();
+        };
+      } catch (error) {
+        console.error('Error setting up milestone subscription:', error);
+      }
+    };
+
+    loadMilestones();
+  }, [sca?.id]);
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -359,7 +416,7 @@ export default function ScaUpdateForm({ sca }) {
     };
   
     try {
-      console.log("Submitting data:", submissionData); // Add logging to debug
+      console.log("Submitting data:", submissionData);
       
       await client.graphql({
         query: updateSca,
@@ -376,6 +433,9 @@ export default function ScaUpdateForm({ sca }) {
         ...submissionData
       };
       setLocalSca(updatedSca);
+      
+      // Update the initial state to match the current state
+      setInitialFormState({...formState});
       setIsFormChanged(false);
       
       // Add confirmation message
@@ -385,7 +445,6 @@ export default function ScaUpdateForm({ sca }) {
     }
   }
   
-
   if (!sca) {
     return null;
   }
@@ -468,6 +527,7 @@ export default function ScaUpdateForm({ sca }) {
                   label={field.label}
                   value={formState[field.name]}
                   onChange={(value) => updateField(field.name, value)}
+                  onInitialFormat={handleInitialFormat}
                   multiline={field.multiline}
                   rows={field.rows}
                   required={field.required !== false}
@@ -486,6 +546,7 @@ export default function ScaUpdateForm({ sca }) {
                     label={field.label}
                     value={formState[field.name]}
                     onChange={(value) => updateField(field.name, value)}
+                    onInitialFormat={handleInitialFormat}
                     isDate={field.isDate}
                     name={field.name}
                     formState={formState}
@@ -509,6 +570,7 @@ export default function ScaUpdateForm({ sca }) {
                     label={field.label}
                     value={formState[field.name]}
                     onChange={(value) => updateField(field.name, value)}
+                    onInitialFormat={handleInitialFormat}
                     name={field.name}
                     formState={formState}
                   />
@@ -523,6 +585,7 @@ export default function ScaUpdateForm({ sca }) {
                     label={field.label}
                     value={formState[field.name]}
                     onChange={(value) => updateField(field.name, value)}
+                    onInitialFormat={handleInitialFormat}
                     multiline={field.multiline}
                     rows={field.rows}
                     name={field.name}
@@ -539,6 +602,7 @@ export default function ScaUpdateForm({ sca }) {
                     label={field.label}
                     value={formState[field.name]}
                     onChange={(value) => updateField(field.name, value)}
+                    onInitialFormat={handleInitialFormat}
                     isSegmentedControl={field.isSegmentedControl}
                     name={field.name}
                     formState={formState}
@@ -561,6 +625,7 @@ export default function ScaUpdateForm({ sca }) {
                   label={field.label}
                   value={formState[field.name]}
                   onChange={(value) => updateField(field.name, value)}
+                  onInitialFormat={handleInitialFormat}
                   multiline={field.multiline}
                   rows={field.rows}
                   required={field.required !== false}
@@ -574,5 +639,4 @@ export default function ScaUpdateForm({ sca }) {
       </Form>
     </form>
   );
-  
 }
