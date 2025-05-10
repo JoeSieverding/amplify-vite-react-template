@@ -267,7 +267,7 @@ const FORM_FIELDS = {
   },
   industry: [
     { name: 'contract_primary_industry', label: 'Industry' },
-    { name: 'contract_theme', label: 'Theme' }
+    { name: 'contract_theme', label: 'Value Chains' }
   ],
   useCases: [
     { name: 'primary_use_cases', label: 'Priority Use Cases', multiline: true, rows: 2 }
@@ -285,7 +285,7 @@ const FORM_FIELDS = {
   ]
 };
 
-export default function ScaUpdateForm({ sca }) {
+export default function ScaUpdateForm({ sca, onSuccess, onError, showNotification }) {
   const navigate = useNavigate();
   const [localSca, setLocalSca] = React.useState(sca);
   const [milestones, setMilestones] = React.useState([]);
@@ -349,27 +349,23 @@ export default function ScaUpdateForm({ sca }) {
     if (value !== initialFormState[field]) {
       setIsFormChanged(true);
     } else {
-      // Check if any other fields are different from initial state
-      const otherFieldsChanged = Object.keys(formState).some(
-        key => key !== field && formState[key] !== initialFormState[key]
+      // Check if all fields match their initial values
+      const updatedFormState = { ...formState, [field]: value };
+      const allMatch = Object.keys(initialFormState).every(key => 
+        initialFormState[key] === updatedFormState[key]
       );
-      setIsFormChanged(otherFieldsChanged);
+      
+      if (allMatch) {
+        setIsFormChanged(false);
+      }
     }
   };
 
-  // Reset form to original values
-  const resetStateValues = () => {
-    if (localSca) {
-      setFormState({...initialFormState});
-      setIsFormChanged(false);
-    }
-  };
-
-  // Load milestones when component mounts
+  // Load milestones for this SCA
   React.useEffect(() => {
+    if (!sca?.id) return;
+    
     const loadMilestones = async () => {
-      if (!sca?.id) return;
-
       try {
         const milestoneSubscription = client.models.Milestone.observeQuery({
           filter: { scaId: { eq: sca.id } }
@@ -398,6 +394,9 @@ export default function ScaUpdateForm({ sca }) {
   
     // Check for invalid dates before saving
     if (!validateAllDates(formState)) {
+      if (showNotification) {
+        showNotification("error", "Please fix date format errors");
+      }
       return;
     }
   
@@ -405,6 +404,9 @@ export default function ScaUpdateForm({ sca }) {
     if (validateDateFormat(formState.start_date) && 
         validateDateFormat(formState.end_date) && 
         !validateDateOrder(formState.start_date, formState.end_date)) {
+      if (showNotification) {
+        showNotification("error", "End date must be after start date");
+      }
       return;
     }
   
@@ -440,8 +442,22 @@ export default function ScaUpdateForm({ sca }) {
       
       // Add confirmation message
       console.log("SCA updated successfully with is_tech:", submissionData.is_tech);
+      
+      // Call onSuccess callback if provided
+      if (onSuccess && typeof onSuccess === 'function') {
+        onSuccess(updatedSca);
+      } else if (showNotification && typeof showNotification === 'function') {
+        showNotification("success", "SCA updated successfully");
+      }
     } catch (err) {
       console.error('Error updating SCA:', err);
+      
+      // Call onError callback if provided
+      if (onError && typeof onError === 'function') {
+        onError(err);
+      } else if (showNotification && typeof showNotification === 'function') {
+        showNotification("error", `Error updating SCA: ${err.message || "Unknown error"}`);
+      }
     }
   }
   
@@ -478,23 +494,30 @@ export default function ScaUpdateForm({ sca }) {
                 </Button>
               }
               actions={
-                <SpaceBetween direction="horizontal" size="XS">
+                <SpaceBetween direction="horizontal" size="xs">
                   <Button
-                    variation="secondary"
-                    onClick={resetStateValues}
+                    variant="link"
+                    onClick={() => {
+                      navigate('/scas');
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setFormState({...initialFormState});
+                      setIsFormChanged(false);
+                      if (showNotification) {
+                        showNotification("info", "Form reset to original values");
+                      }
+                    }}
                     disabled={!isFormChanged}
                   >
                     Reset
                   </Button>
                   <Button
-                    variation="secondary"
-                    onClick={() => navigate(-1)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="submit"
-                    variation="primary"
+                    variant="primary"
+                    formAction="submit"
                     disabled={
                       !isFormChanged || 
                       !validateAllDates(formState) || 
@@ -559,7 +582,7 @@ export default function ScaUpdateForm({ sca }) {
           {/* Industry Section */}
           <Container
             header={
-              <Header variant="h4">Industry & Theme</Header>
+              <Header variant="h4">Industry</Header>
             }
           >
             <SpaceBetween direction="vertical" size="l">
@@ -576,25 +599,39 @@ export default function ScaUpdateForm({ sca }) {
                   />
                 ))}
               </Grid>
-              
-              {/* Priority Use Cases row */}
-              <Grid gridDefinition={[{ colspan: 12 }]}>
-                {FORM_FIELDS.useCases.map((field) => (
-                  <FormInputField
-                    key={field.name}
-                    label={field.label}
-                    value={formState[field.name]}
-                    onChange={(value) => updateField(field.name, value)}
-                    onInitialFormat={handleInitialFormat}
-                    multiline={field.multiline}
-                    rows={field.rows}
-                    name={field.name}
-                    formState={formState}
-                  />
-                ))}
-              </Grid>
-              
-              {/* Has Tech and SPCG Identifier row */}
+            </SpaceBetween>
+          </Container>
+  
+          {/* Use Cases Section */}
+          <Container
+            header={
+              <Header variant="h4">Use Cases</Header>
+            }
+          >
+            <SpaceBetween direction="vertical" size="l">
+              {FORM_FIELDS.useCases.map((field) => (
+                <FormInputField
+                  key={field.name}
+                  label={field.label}
+                  value={formState[field.name]}
+                  onChange={(value) => updateField(field.name, value)}
+                  onInitialFormat={handleInitialFormat}
+                  multiline={field.multiline}
+                  rows={field.rows}
+                  name={field.name}
+                  formState={formState}
+                />
+              ))}
+            </SpaceBetween>
+          </Container>
+  
+          {/* Tech Info Section */}
+          <Container
+            header={
+              <Header variant="h4">Tech Info</Header>
+            }
+          >
+            <SpaceBetween direction="vertical" size="l">
               <Grid gridDefinition={[{ colspan: 6 }, { colspan: 6 }]}>
                 {FORM_FIELDS.techInfo.map((field) => (
                   <FormInputField
